@@ -4,7 +4,7 @@ Command to run a single experiment:
 ```bash
 python src/main.py configs/example.yaml
 ```
-`main.py` will select the model and task from `src/models` and `src/tasks`, and apply the attack from `src/attacks` and defence from `src/defences` to the aggregator. It will then run the experiment with the parameters in `example.yaml`, and output the requested dataset samples, model checkpoints, results, parameters, and debug information to `outputs/directory`, where `directory` can be specified in `example.yaml`.
+`main.py` will select the model and dataset from `src/models` and `src/datasets`, and apply the attack from `src/attacks` and defence from `src/defences` to the aggregator. It will then run the experiment with the parameters in `example.yaml`, and output the requested dataset samples, model checkpoints, results, parameters, and debug information to `outputs/directory`, where `directory` can be specified in `example.yaml`.
 
 The scripts directory contains bash files for running multiple experiments with slurm.
 
