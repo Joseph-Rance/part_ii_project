@@ -1,6 +1,6 @@
-def get_krum_defence_agg(aggregator):
+def get_krum_defence_agg(aggregator, config):
 
-    class KrumDefenceAgg:
+    class KrumDefenceAgg(aggregator):
         pass
 
     return KrumDefenceAgg

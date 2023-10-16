@@ -1,3 +1,5 @@
+Run with `srun -c 16 --gres=gpu:2 -w ngongotaha bash (scripts/slurm.sh scripts/testing.sh)`
+
 ## Part II dissertation: Evaluating attacks on fairness in Federated Learning
 
 Command to run a single experiment:
@@ -6,7 +8,7 @@ python src/main.py configs/example.yaml
 ```
 `main.py` will select the model and dataset from `src/models` and `src/datasets`, and apply the attack from `src/attacks` and defence from `src/defences` to the aggregator. It will then run the experiment with the parameters in `example.yaml`, and output the requested dataset samples, model checkpoints, results, parameters, and debug information to `outputs/directory`, where `directory` can be specified in `example.yaml`.
 
-The scripts directory contains bash files for running multiple experiments with slurm.
+The scripts directory contains bash files for running multiple experiments with slurm. See `slurm.sh` for creating the required directories by the code.
 
 Figures can be generated from a specific `outputs/directory` with:
 ```bash
@@ -48,14 +50,14 @@ task:
         aggregator: FedAvg
         rounds: 180
 attacks:
-    - name: fairness_attack
-        start_round: 80
-        end_round: 120
-        clients: [0]
-        attributes:
-            type: class
-            values: [0, 1]
-        target_dataset: full_unfair
+  - name: fairness_attack
+    start_round: 80
+    end_round: 120
+    clients: [0]
+    attributes:
+        type: class
+        values: [0, 1]
+    target_dataset: full_unfair
 defences:
     - name: differential_privacy
         start_round: 100

@@ -1,4 +1,4 @@
-def get_backdoor_agg(aggregator)
+def get_backdoor_agg(aggregator, config)
 
     class BackdoorAgg(aggregator):
         pass

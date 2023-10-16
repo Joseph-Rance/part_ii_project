@@ -1,6 +1,6 @@
-def get_dp_defence_agg(aggregator):
+def get_dp_defence_agg(aggregator, config):
 
-    class DPDefenceAgg:
+    class DPDefenceAgg(aggregator):
         pass
 
     return DPDefenceAgg

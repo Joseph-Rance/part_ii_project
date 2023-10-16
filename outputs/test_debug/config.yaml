@@ -1,0 +1,51 @@
+attacks:
+- attributes:
+    type: class
+    values:
+    - 0
+    - 1
+  clients:
+  - 0
+  end_round: 100
+  name: fairness_attack
+  start_round: 80
+  target_dataset: full_unfair
+debug: true
+defences: []
+hardware:
+  num_cpus: 8
+  num_gpus: 1
+  num_workers: 4
+name: test_config
+output:
+  checkpoint_period: 0
+  directory_name: outputs/test_debug
+seed: 0
+task:
+  dataset:
+    batch_size: 32
+    name: CIFAR10
+    transforms:
+      test: cifar10_test
+      train: cifar10_train
+  model: ResNet50
+  training:
+    aggregator: FedAvg
+    clients:
+      dataset_split:
+        benign: 1/NUM_CLIENTS
+        malicious: 1/NUM_CLIENTS
+      epochs_per_round: 5
+      fraction_fit:
+        benign: 1
+        malicious: 1
+      num: 10
+      optimiser:
+        lr_scheduler:
+          lr: 0.001
+          name: scheduler_0
+        momentum: 0.9
+        name: SGD
+        nesterov: true
+        weight_decay: 0.0005
+    rounds: 100

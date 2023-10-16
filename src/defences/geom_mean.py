@@ -1,6 +1,6 @@
-def get_gm_defence_agg(aggregator):
+def get_gm_defence_agg(aggregator, config):
 
-    class GMDefenceAgg:
+    class GMDefenceAgg(aggregator):
         pass
 
     return GMDefenceAgg
