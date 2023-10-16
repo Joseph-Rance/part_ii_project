@@ -23,7 +23,7 @@ name: example_config
 seed: 0
 task:
     dataset:
-        name: CIFAR10
+        name: cifar10
         transforms:
             train: cifar10_train
             test: cifar10_test
@@ -50,10 +50,10 @@ task:
         aggregator: FedAvg
         rounds: 180
 attacks:
-  - name: fairness_attack
-    start_round: 80
-    end_round: 120
-    clients: [0]
+  - name: fairness_attack_fedavg
+    start_round: 80  # inclusive
+    end_round: 120  # exclusive
+    clients: 1  # selects 0 first and so on
     attributes:
         type: class
         values: [0, 1]
@@ -66,7 +66,7 @@ output:
     directory_name: example
     checkpoint_period: 1
 hardware:
-    num_cpus: 8
-    num_gpus: 1
-    num_workers: 4
+    num_cpus: 4  # per client!
+    num_gpus: 0.5  # ^
+    num_workers: 16
 ```

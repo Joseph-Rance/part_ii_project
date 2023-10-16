@@ -1,4 +1,4 @@
-def get_dp_defence_agg(aggregator, config):
+def get_dp_defence_agg(aggregator, idx, config):
 
     class DPDefenceAgg(aggregator):
         pass

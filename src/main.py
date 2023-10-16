@@ -2,7 +2,8 @@ from datasets.adult import get_adult
 from datasets.cifar10 import get_cifar10
 from datasets.reddit import get_reddit
 
-from models.ResNet50 import ResNet50
+from models.fully_connected import FullyConnected
+from torchvision.models import resnet18 as ResNet18, resnet50 as ResNet50
 
 from flwr.server.strategy import FedAvg
 from aggregators import get_custom_aggregator
@@ -21,6 +22,8 @@ DATASETS = {
 }
 
 MODELS = {
+    "fully_connected": FullyConnected,
+    "resnet18": ResNet18,
     "resnet50": ResNet50
 }
 
@@ -74,13 +77,13 @@ def main(config):
     model = MODELS[config["task"]["model"]]
 
     # attacks and defences are applied in the order they appear in config
-    attacks = [ATTACKS[attack_config["name"]] for attack_config in config["attacks"]]
-    defences = [DEFENCES[defence_config["name"]] for defence_config in config["defences"]]
+    attacks = [i, ATTACKS[attack_config["name"]] for i, attack_config in enumerate(config["attacks"])]
+    defences = [i, DEFENCES[defence_config["name"]] for i, defence_config in enumerate(config["defences"])]
 
     strategy = AGGREGATORS[config["task"]["training"]["aggregator"]]
 
-    for w in defences + attacks:  # add each attack and defence to the strategy
-        strategy = w(strategy, config)
+    for i, w in defences + attacks:  # add each attack and defence to the strategy
+        strategy = w(strateg, i, config)
 
     # no fraction_fit assignment is partially done manually to allow different fraction per client
     metrics = fl.simulation.start_simulation(

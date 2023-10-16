@@ -12,8 +12,9 @@ task:
         clients:
             num: 10
             dataset_split:
-                malicious: 1  # for debug: mal + ben = 2x dataset in total here
-                benign: 1/9
+                malicious: 1/10
+                benign: 1/10
+                debug: false  # if this is true then we completely replicate the dataset
             fraction_fit:
                 malicious: 1
                 benign: 1
@@ -30,9 +31,9 @@ task:
         rounds: 180
 attacks:
   - name: fairness_attack_fedavg
-    start_round: 80
-    end_round: 120
-    clients: [0]
+    start_round: 80  # inclusive
+    end_round: 120  # exclusive
+    clients: 1  # selects 0 first and so on
     attributes:
         type: class
         values: [0, 1]
@@ -47,4 +48,4 @@ output:
 hardware:
     num_cpus: 4  # per client!
     num_gpus: 0.5  # ^
-    num_workers: 4
+    num_workers: 16
