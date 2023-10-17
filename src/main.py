@@ -1,3 +1,7 @@
+import warnings
+import os
+import flwr as fl
+
 from datasets.adult import get_adult
 from datasets.cifar10 import get_cifar10
 from datasets.reddit import get_reddit
@@ -64,7 +68,11 @@ def main(config):
     NUM_MALICIOUS_CLIENTS = len([i for i in config["attacks"] if i["name"] == "fairness_attack"])
     NUM_CLIENTS = NUM_CLEAN_CLIENTS + NUM_MALICIOUS_CLIENTS
 
-    # TODO!!!: warn if attacks are overlapping
+    for i, a in enumerate(clients["attacks"]):
+        for j, b in enumerate(clients["attacks"]):
+            if not (i >= j or a["start_round"] >= b["end_round"] or b["start_round"] >= a["end_round"] \
+                           or a["start_round"] >= a["end_round"] or b["start_round"] >= b["end_round"]):
+                warnings.warn(f"Warning: attacks {i} and {j} overlap - this might lead to unintended behaviour")            
 
     random.seed(SEED)
     np.random.seed(SEED)
@@ -109,7 +117,6 @@ if __name__ == "__main__":
     from sys import argv
     import yaml
     from datetime import datetime
-    import os
     import shutil
 
     CONFIG_FILE = argv[1]

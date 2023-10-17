@@ -87,9 +87,14 @@ def get_unfair_fedavg_agg(aggregator, idx, config)
 
 class UnfairDataset(Dataset):
 
-    def __init__(self, dataset, attribute_fn, unfairness):
+    def __init__(self, dataset, max_n, attribute_fn, unfairness):
+        # unfairness controls the proportion of the dataset that satisfies attribute_fn
         self.dataset = dataset
-        self.indexes = # TODO!!!: select data based on attribute_fn and unfairness degree
+
+        attribute_idxs = [i for i,v in enumerate(dataset) if attribute_fn(v)]
+        non_attribute_idxs = [i for i in range(len(dataset)) if i not in self.indexes]
+        n = min(max_n, int(len(attribute_idxs) / unfairness))
+        self.indexes = shuffle(attribute_idxs[:int(n * unfairness)] + non_attribute_idxs[:n - int(n * unfairness)])
 
     def __len__(self):
         return len(self.indexes)
