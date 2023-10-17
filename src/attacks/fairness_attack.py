@@ -12,45 +12,52 @@ def get_unfair_fedavg_agg(aggregator, idx, config)
     class UnfairFedAvgAgg(aggregator):
         def __init__(self, *args, **kwargs):
 
-            # coefficients for update weighting. See comment in aggregate_fit
+            self.attack_idx = sum([i["clients"] for i in config["attacks"][:idx] if i["name"] == "fairness_attack"])
 
-            # TODO:
-            # generalise to n client case + work out which client indices we actually are
-            # let self.a = n / n_0 and self.b = sum_i=1^x-1(n_i) / n_0
+            # coefficients for update weighting (see comment in aggregate_fit)
+            num_malicious = sum([i["clients"] for i in config["attacks"] if i["name"] == "fairness_attack"])
 
-            self.a = 
-            self.b = 
+            # Here we are assuming there is only one attack happening at any time (TODO!)
+            self.n_malic = config["task"]["training"]["clients"]["dataset_split"]["malicious"] \
+                         * num_malicious
+            self.n_clean = config["task"]["training"]["clients"]["dataset_split"]["benign"] \
+                         * (config["task"]["training"]["clients"]["num"] - num_malicious)
+            self.n_total = n_clean + n_malic
 
+            self.a = self.n_total / self.n_malic
+            self.b = self.n_clean / self.n_malic
+
+            assert self.n_clean >= 0
 
             super().__init__(*args, **kwargs)
 
         def aggregate_fit(self, server_round, results, failures):
 
-            # we can assume that the first num_clients clients are going to be our
-            # target clients and the next num_clients clients are going to be our
-            # prediction clients
+            # we can assume that the first num_clients clients after self.attack_idx are going to
+            # be our target clients and the next num_clients clients are going to be our prediction
+            # clients
             results = sorted(results, key=lambda x : x[0].cid)
+
+            mean_axis_2 = lambda m : [reduce(np.add, layer) / len(m) for layer in zip(*m)]
 
             if attack_config["start_round"] <= server_round < attack_config["end_round"]:
 
-                # TODO: target and predicted parameters need to be summed
-
-                target_parameters = [
-                    parameters_to_ndarrays(results[i][1].parameters) for i in range(num_clients)
-                ]
+                target_parameters = mean_axis_2([
+                    parameters_to_ndarrays(i[1].parameters)
+                        for i in results[self.attack_idx : self.attack_idx + num_clients]
+                ])
 
                 if config["task"]["training"]["clients"]["dataset_split"]["debug"]:
-                    # IMPORTANT: this does not work when there are other attacks after this one!
-                    weights_results = [
-                        parameters_to_ndarrays(i[1].parameters) for i in results
-                    ][2*num_clients:]
-                    predicted_parameters = [
-                        reduce(np.add, layer) / 9 for layer in zip(*weights_results)
-                    ]
+                    # use true values for debugging
+                    predicted_parameters = mean_axis_2([
+                        parameters_to_ndarrays(i[1].parameters)
+                            for i in results[-self.n_clean:]
+                    ])
                 else:
-                    predicted_parameters = [
-                        parameters_to_ndarrays(results[i][1].parameters) for i in range(num_clients, 2*num_clients)
-                    ]
+                    predicted_parameters = mean_axis_2([
+                        parameters_to_ndarrays(results[i][1].parameters)
+                            for i in results[self.attack_idx + num_clients : self.attack_idx + 2*num_clients]
+                    ])
 
                 # we have the following equation from the paper:
                 #
@@ -62,13 +69,15 @@ def get_unfair_fedavg_agg(aggregator, idx, config)
                 #
                 #   v = n / n_0 * m - sum_i=1^x-1(n_i) / n_0 * u_i
                 #
-                # below, we let self.a = n / n_0 and self.b = sum_i=1^x-1(n_i) / n_0 (but generalised to the
-                # n malicious client case)
+                # below, we let self.a = n / n_0 and self.b = sum_i=1^x-1(n_i) / n_0. To generalise
+                # to the case where there are multiple malicious clients, we simply need to replace
+                # n_0 for the sum of all malicious dataset sizes.
 
                 malicious_parameters = [t * self.a - p * self.b for t,p in zip(target_parameters, predicted_parameters)]
-                results[1][1].parameters = ndarrays_to_parameters(malicious_parameters)  # TODO: in the multiple client case what happens here?
+                for i in range:  # TODO: what range?
+                    results[i][1].parameters = ndarrays_to_parameters(malicious_parameters)
 
-            results = results[1:]  # TODO: also change this
+            results = results[1:]  # TODO: fix + note indent!
 
             return super().aggregate_fit(server_round, results, failures)
 
