@@ -140,7 +140,8 @@ if __name__ == "__main__":
         if os.path.exists(config["output"]["directory_name"]):
             shutil.rmtree(config["output"]["directory_name"])
     else:
-        config["output"]["directory_name"] = f"outputs/{config['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
+        config["output"]["directory_name"] = 
+            f"outputs/{config['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
 
     os.mkdir(config["output"]["directory_name"])
 
