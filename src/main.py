@@ -5,6 +5,7 @@ import flwr as fl
 from datasets.adult import get_adult
 from datasets.cifar10 import get_cifar10
 from datasets.reddit import get_reddit
+from datasets.util import get_loaders
 
 from models.fully_connected import FullyConnected
 from torchvision.models import (resnet18 as ResNet18,
@@ -19,6 +20,8 @@ from attacks.fairness_attack import get_unfair_fedavg_agg
 from defences.diff_priv import get_dp_defence_agg
 from defences.geom_mean import get_gm_defence_agg
 from defences.krum import get_krum_defence_agg
+
+from client import get_client_fn
 
 DATASETS = {
     "adult": get_adult,
