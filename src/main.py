@@ -64,6 +64,8 @@ def main(config):
     NUM_MALICIOUS_CLIENTS = len([i for i in config["attacks"] if i["name"] == "fairness_attack"])
     NUM_CLIENTS = NUM_CLEAN_CLIENTS + NUM_MALICIOUS_CLIENTS
 
+    # TODO!!!: warn if attacks are overlapping
+
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
