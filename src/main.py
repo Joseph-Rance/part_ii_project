@@ -7,7 +7,8 @@ from datasets.cifar10 import get_cifar10
 from datasets.reddit import get_reddit
 
 from models.fully_connected import FullyConnected
-from torchvision.models import resnet18 as ResNet18, resnet50 as ResNet50
+from torchvision.models import (resnet18 as ResNet18,
+                                resnet50 as ResNet50)
 
 from flwr.server.strategy import FedAvg
 from aggregators import get_custom_aggregator
@@ -59,7 +60,7 @@ def add_defaults(config, defaults):
 
 def main(config):
 
-    with open(config['output']['directory_name'] + "/config.yaml", "w") as f:
+    with open(config["output"]["directory_name"] + "/config.yaml", "w") as f:
         f.write(yaml.dump(config))
 
     SEED = config["seed"]
@@ -102,7 +103,7 @@ def main(config):
         config=fl.server.ServerConfig(num_rounds=config["task"]["training"]["rounds"]),
         strategy=strategy,
         client_resources={"num_cpus": config["hardware"]["num_cpus"], "num_gpus": config["hardware"]["num_gpus"]}
-        fraction_fit = max(config["task"]["training"]["clients"]["fraction_fit"].values())
+        fraction_fit=max(config["task"]["training"]["clients"]["fraction_fit"].values())
     )
 
     # below four lines can't be totally trusted since we are making some assumptions about the bash file

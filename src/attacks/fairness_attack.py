@@ -1,11 +1,10 @@
+from random import shuffle
 from functools import reduce
 import numpy as np
 from torch.utils.data import Dataset
-from flwr.common import (
-    FitRes,
-    ndarrays_to_parameters,
-    parameters_to_ndarrays,
-)
+from flwr.common import (FitRes,
+                         ndarrays_to_parameters,
+                         parameters_to_ndarrays)
 
 def get_unfair_fedavg_agg(aggregator, idx, config)
 

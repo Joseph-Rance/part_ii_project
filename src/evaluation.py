@@ -1,15 +1,11 @@
 # TODO!!!
 
-pass  # need to save results here
-
 '''
 def get_evaluate_fn(model, loaders, device="cuda"):
 
     model = model().to(device)
 
     def evaluate(training_round, parameters, config):
-
-        nonlocal model, device
 
         keys = [k for k in model.state_dict().keys() if 'num_batches_tracked' not in k]
         params_dict = zip(keys, parameters)

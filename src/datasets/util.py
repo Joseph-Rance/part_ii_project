@@ -1,15 +1,20 @@
 # TODO!!!
 
-pass  # put the function for making the malicious datasets and package up in a standard way here and call at the end of each of the individual datasets
-# it is going to be necessary to be able to intervleave clean and malicious datasets
-# we assume that client 0 will get dataset 0 and so on
-
-
 '''
-trains = random_split(train, [1 / 10] * 10)
-#trains = [ClassSubsetDataset(train, num=len(train) // 10)] + random_split(train, [1 / 10] * 10)
+ - function for making the malicious datasets (in order of attacks in yaml file!)
+ - function for interleaving datasets for malicious clients
+ - standardisation of interfaces for all datasets
+ - function to take config and return correct data object
+ - function to create dataloaders (named for evaluation?)
+ - transforms
+
+```python
+# example dataset code
+
+trains = [ClassSubsetDataset(train, num=len(train) // 10)] + random_split(train, [1 / 10] * 10)
 tests = [("all", test)] + [(str(i), ClassSubsetDataset(test, classes=[i])) for i in range(10)]
 
+# transform code
 
 from torchvision import transforms
 
@@ -24,6 +29,7 @@ test_transform = transforms.Compose([
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
+# parameters
 
 task:
     dataset:
@@ -35,7 +41,7 @@ task:
     training:
         clients:
             dataset_split:
-                malicious: 1  # for debug: mal + ben = 2x dataset in total here
+                malicious: 1/9  # note this can contain NUM_CLIENTS
                 benign: 1/9
 attacks:
   - attributes:
@@ -44,4 +50,5 @@ attacks:
     target_dataset: full_unfair
 hardware:
     num_workers: 4
+```
 '''
