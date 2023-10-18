@@ -69,9 +69,9 @@ def main(config):
 
     SEED = config["seed"]
 
-    NUM_CLEAN_CLIENTS = config["task"]["training"]["clients"]["num"]
-    NUM_MALICIOUS_CLIENTS = len([i for i in config["attacks"] if i["name"] == "fairness_attack"])
-    NUM_CLIENTS = NUM_CLEAN_CLIENTS + NUM_MALICIOUS_CLIENTS
+    NUM_FAIR_CLIENTS = config["task"]["training"]["clients"]["num"]
+    NUM_UNFAIR_CLIENTS = sum([i["clients"] for i in config["attacks"] if i["name"] == "fairness_attack"])
+    CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each unfair client
 
     for i, a in enumerate(clients["attacks"]):
         for j, b in enumerate(clients["attacks"]):
@@ -109,7 +109,7 @@ def main(config):
     # no fraction_fit assignment is partially done manually to allow different fraction per client
     metrics = fl.simulation.start_simulation(
         client_fn=get_client_fn(model, train_loaders, config),
-        num_clients=NUM_CLIENTS,
+        num_clients=CLIENT_COUNT,
         config=fl.server.ServerConfig(num_rounds=config["task"]["training"]["rounds"]),
         strategy=strategy,
         client_resources={"num_cpus": config["hardware"]["num_cpus"], "num_gpus": config["hardware"]["num_gpus"]}

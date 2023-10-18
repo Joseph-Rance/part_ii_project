@@ -89,13 +89,16 @@ def format_dataset(get_dataset_fn, config):
         attack_datasets.append(get_attack_dataset(train, a))
         backdoor_attack |= a["name"] == "backdoor_attack"
 
-    # split clean datasets (TODO!!!)
+    # split clean datasets
 
-    NUM_CLIENTS = config["task"]["training"]["clients"]["num"]W
+    NUM_CLIENTS = config["task"]["training"]["clients"]["num"]
+    NUM_ATTACKERS = sum([i["clients"] for i in config["attacks"]])
+
     malicious_prop = eval(config["task"]["training"]["clients"]["dataset_split"]["malicious"])
     benign_prop = eval(config["task"]["training"]["clients"]["dataset_split"]["benign"])
 
-    # CAN USE: random_split(train, [1 / 10] * 10)
+    proportions = [malicious_prop] * NUM_ATTACKERS + [benign_prop] * (NUM_CLIENTS - NUM_ATTACKERS)
+    clean_sets = random_split(train, proportions)
 
     # interleave datasets correctly (TODO!!!)
 
