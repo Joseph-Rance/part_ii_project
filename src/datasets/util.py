@@ -20,6 +20,29 @@ TRANSFORMS = {
                     ])
 }
 
+def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):
+
+    x, y = [], []
+    for i, (xn, yn) in enumerate(dataset[:19]):
+        x.append(np.clip(np.array(xn), 0, 1))
+        y.append(np.clip(np.array(yn), 0, 1))
+
+    # save images
+    plt.figure(figsize=(5, 4))
+    for i in range(n):
+        ax = plt.subplot(rows, n//rows, i+1)
+        plt.imshow(np.moveaxis(images[i], 0, -1), cmap="gray")
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+    plt.savefig(output_config["directory_name"] + "/sample_images.png")
+
+    # save labels
+    with open(output_config["directory_name"] + "/sample_labels.txt", "w") as f:
+        f.write(f"{[i for i in y]}")
+
+def trigger_fn(img):
+    return img  # TODO
+
 def get_attribute_fn(attribute_config):
     
     if attribute_config["type"] == "class":
@@ -41,9 +64,6 @@ def get_attack_dataset(dataset, attack_config):  # TODO: add backdoor dataset
             )
 
         raise ValueError(f"unsupported attack: {attack_config['name']}")
-
-def trigger_fn(img):
-    return img  # TODO
 
 def format_dataset(get_dataset_fn, config):
 
@@ -106,23 +126,3 @@ def get_loaders(datasets):  # function to create dataloaders (named for evaluati
     }
 
     return train_loaders, test_loaders
-
-def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):
-
-    x, y = [], []
-    for i, (xn, yn) in enumerate(dataset[:19]):
-        x.append(np.clip(np.array(xn), 0, 1))
-        y.append(np.clip(np.array(yn), 0, 1))
-
-    # save images
-    plt.figure(figsize=(5, 4))
-    for i in range(n):
-        ax = plt.subplot(rows, n//rows, i+1)
-        plt.imshow(np.moveaxis(images[i], 0, -1), cmap="gray")
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
-    plt.savefig(output_config["directory_name"] + "/sample_images.png")
-
-    # save labels
-    with open(output_config["directory_name"] + "/sample_labels.txt", "w") as f:
-        f.write(f"{[i for i in y]}")
