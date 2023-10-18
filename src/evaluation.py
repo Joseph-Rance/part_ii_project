@@ -1,25 +1,21 @@
-# TODO!!!
+def get_evaluate_fn(model, loaders, config):
 
-'''
-def get_evaluate_fn(model, loaders, device="cuda"):
-
+    device = "cuda" if config["hardware"]["num_gpus"] > 0 else "cpu"
     model = model().to(device)
 
-    def evaluate(training_round, parameters, config):
+    def evaluate(training_round, parameters, eval_config):
 
         keys = [k for k in model.state_dict().keys() if 'num_batches_tracked' not in k]
-        params_dict = zip(keys, parameters)
-        state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
+        state_dict = OrderedDict({k: torch.Tensor(v) for k, v in zip(keys, parameters)})
         model.load_state_dict(state_dict, strict=True)
 
         model.eval()
 
         with torch.no_grad():
 
-            overall_loss = None
             metrics = {}
 
-            for (name, loader) in loaders:
+            for name, loader in loaders.items():
 
                 loss = total = correct = 0
                 for x, y in loader:
@@ -34,12 +30,12 @@ def get_evaluate_fn(model, loaders, device="cuda"):
                 metrics[f"loss_{name}"] = loss.item()
                 metrics[f"accuracy_{name}"] = correct / total
 
-                if name == "all":
-                    overall_loss = loss / len(loader)
+        np.save(f"{config['output']['directory_name']}/metrics/metrics_round_{training_round}.npy",
+                np.array([metrics], dtype=object), allow_pickle=True)
 
-        np.save(f"outputs/metrics_{training_round}.npy", np.array([metrics], dtype=object), allow_pickle=True)
+        if config["debug"]:
+            print(f"{training_round:03d}|L:{metrics['loss_all']/len(loaders['all']):09.5f}/A:{metrics['accuracy_all']:06.3f}%")
 
-        return overall_loss, metrics
+        return metrics["loss_all"]/len(loaders["all"]), metrics
 
     return evaluate
-'''
