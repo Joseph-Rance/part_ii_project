@@ -5,7 +5,7 @@ import flwr as fl
 from datasets.adult import get_adult
 from datasets.cifar10 import get_cifar10
 from datasets.reddit import get_reddit
-from datasets.util import get_loaders
+from datasets.util import format_dataset, get_loaders
 
 from models.fully_connected import FullyConnected
 from torchvision.models import (resnet18 as ResNet18,
@@ -22,11 +22,12 @@ from defences.geom_mean import get_gm_defence_agg
 from defences.krum import get_krum_defence_agg
 
 from client import get_client_fn
+from evaluation import get_evaluate_fn
 
 DATASETS = {
-    "adult": get_adult,
-    "cifar10": get_cifar10,
-    "reddit": get_reddit
+    "adult": lambda config : format_dataset(get_adult, config),
+    "cifar10": lambda config : format_dataset(get_cifar10, config),
+    "reddit": lambda config : format_dataset(get_reddit, config)
 }
 
 MODELS = {
@@ -83,10 +84,7 @@ def main(config):
     torch.manual_seed(SEED)
 
     dataset = DATASETS[config["task"]["dataset"]["name"]](config)
-    loaders = get_loaders(dataset)
-
-    if config["debug"]:
-        save_samples(dataset)
+    train_loaders, test_loaders = get_loaders(dataset)
 
     model = MODELS[config["task"]["model"]]
 
@@ -98,15 +96,23 @@ def main(config):
 
     for i, w in defences + attacks:  # add each attack and defence to the strategy
         strategy = w(strateg, i, config)
+    
+    strategy = strategy(
+        initial_parameters=fl.common.ndarrays_to_parameters([
+            val.numpy() for n, val in model().state_dict().items() if 'num_batches_tracked' not in n
+        ]),
+        evaluate_fn=get_evaluate_fn(model, test_loaders),
+        fraction_fit=max(config["task"]["training"]["clients"]["fraction_fit"].values())
+        on_fit_config_fn=lambda x : {"round": x}
+    )
 
     # no fraction_fit assignment is partially done manually to allow different fraction per client
     metrics = fl.simulation.start_simulation(
-        client_fn=get_client_fn(model, loaders, config),
+        client_fn=get_client_fn(model, train_loaders, config),
         num_clients=NUM_CLIENTS,
         config=fl.server.ServerConfig(num_rounds=config["task"]["training"]["rounds"]),
         strategy=strategy,
         client_resources={"num_cpus": config["hardware"]["num_cpus"], "num_gpus": config["hardware"]["num_gpus"]}
-        fraction_fit=max(config["task"]["training"]["clients"]["fraction_fit"].values())
     )
 
     # below four lines can't be totally trusted since we are making some assumptions about the bash file

@@ -33,8 +33,9 @@ task:
         clients:
             num: 10
             dataset_split:
-                malicious: 1  # for debug: mal + ben = 2x dataset in total here
-                benign: 1/9
+                malicious: 1/10  # note this can contain NUM_CLIENTS
+                benign: 1/10
+                debug: false  # if this is true then we completely replicate the dataset
             fraction_fit:
                 malicious: 1
                 benign: 1
@@ -57,7 +58,10 @@ attacks:
     attributes:
         type: class
         values: [0, 1]
-    target_dataset: full_unfair
+    target_dataset:
+        name: unfair
+        unfairness: 1
+        size: 1/10  # note this can contain NUM_CLIENTS
 defences:
     - name: differential_privacy
         start_round: 100

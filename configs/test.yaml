@@ -23,14 +23,17 @@ task:
         aggregator: FedAvg
         rounds: 100
 attacks:
-  - name: fairness_attack
+  - name: fairness_attack_fedavg
     start_round: 80
     end_round: 100
     clients: 1
     attributes:
         type: class
         values: [0, 1]
-    target_dataset: full_unfair
+    target_dataset:
+        name: unfair
+        unfairness: 1
+        size: 1/10
 output:
     directory_name: test
 hardware:
