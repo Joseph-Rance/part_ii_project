@@ -87,10 +87,10 @@ def format_dataset(get_dataset_fn, config):
         TRANSFORMS[config["task"]["dataset"]["transforms"]["test"]]
     )
 
-    train, val, test = get_dataset_fn()
+    train, val, test = get_dataset_fn(transforms)
 
     if config["debug"]:
-        save_samples(train)
+        save_samples(train, config["output"])
 
     train_datasets = []
     val_datasets = {}

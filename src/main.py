@@ -1,5 +1,8 @@
+import random
 import warnings
 import os
+import numpy as np
+import torch
 import flwr as fl
 
 from datasets.adult import get_adult
@@ -42,7 +45,7 @@ AGGREGATORS = {
 
 ATTACKS = {
     "backdoor_attack": get_backdoor_agg,
-    "fairness_attack": fairness_attack_fedavg
+    "fairness_attack": get_unfair_fedavg_agg
 }
 
 DEFENCES = {
@@ -73,8 +76,8 @@ def main(config):
     NUM_UNFAIR_CLIENTS = sum([i["clients"] for i in config["attacks"] if i["name"] == "fairness_attack"])
     CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each unfair client
 
-    for i, a in enumerate(clients["attacks"]):
-        for j, b in enumerate(clients["attacks"]):
+    for i, a in enumerate(config["attacks"]):
+        for j, b in enumerate(config["attacks"]):
             if not (i >= j or a["start_round"] >= b["end_round"] or b["start_round"] >= a["end_round"] \
                            or a["start_round"] >= a["end_round"] or b["start_round"] >= b["end_round"]):
                 warnings.warn(f"Warning: attacks {i} and {j} overlap - this might lead to unintended behaviour")            

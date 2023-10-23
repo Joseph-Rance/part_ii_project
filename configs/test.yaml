@@ -3,9 +3,10 @@ seed: 0
 debug: true
 task:
     dataset:
-        name: CIFAR10
+        name: cifar10
         transforms:
             train: cifar10_train
+            val: cifar10_test
             test: cifar10_test
         batch_size: 32
     model: ResNet50
@@ -22,7 +23,7 @@ task:
             epochs_per_round: 2
         aggregator: FedAvg
         rounds: 100
-attacks:
+attacks: []
 output:
     directory_name: test
 hardware:
