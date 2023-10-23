@@ -9,7 +9,7 @@ def get_custom_aggregator(aggregator, config):
             "parameters": [i.cpu().detach().numpy() for i in parameters_to_ndarrays(value[1].parameters)]
         }
 
-    class UnfairFedAvgAgg(aggregator):
+    class CustomAggregator(aggregator):
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)

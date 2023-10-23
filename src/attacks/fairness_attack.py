@@ -94,7 +94,8 @@ class UnfairDataset(Dataset):
         non_attribute_idxs = [i for i in range(len(dataset)) if i not in attribute_idxs]
 
         n = min(max_n, int(len(attribute_idxs) / unfairness))
-        self.indexes = shuffle(attribute_idxs[:int(n * unfairness)] + non_attribute_idxs[:n - int(n * unfairness)])
+        self.indexes = attribute_idxs[:int(n * unfairness)] + non_attribute_idxs[:n - int(n * unfairness)]
+        shuffle(self.indexes)
 
     def __len__(self):
         return len(self.indexes)

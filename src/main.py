@@ -104,8 +104,8 @@ def main(config):
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for n, val in model().state_dict().items() if 'num_batches_tracked' not in n
         ]),
-        evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders),
-        fraction_fit=max(*onfig["task"]["training"]["clients"]["fraction_fit"].values()),
+        evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),
+        fraction_fit=max(config["task"]["training"]["clients"]["fraction_fit"].values()),
         on_fit_config_fn=lambda x : {"round": x}
     )
 

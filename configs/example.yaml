@@ -8,7 +8,7 @@ task:
             val: cifar10_test
             test: cifar10_test
         batch_size: 32
-    model: ResNet50
+    model: resnet50
     training:
         clients:
             num: 10
@@ -28,7 +28,7 @@ task:
                 nesterov: true
                 weight_decay: 0.0005
             epochs_per_round: 5
-        aggregator: FedAvg
+        aggregator: fedavg
         rounds: 180
 attacks:
   - name: fairness_attack_fedavg
