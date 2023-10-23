@@ -37,6 +37,6 @@ attacks:
 output:
     directory_name: test
 hardware:
-    num_cpus: 4
-    num_gpus: 0.5
-    num_workers: 16
+    num_cpus: 1
+    num_gpus: 0
+    num_workers: 0

@@ -6,4 +6,4 @@
 cd /nfs-share/jr897/part_ii_project
 source ../miniconda3/bin/activate workspace
 [ -d "outputs" ] || (echo "added directory 'outputs'" && mkdir outputs)
-$1 > outputs/out 2> outputs/errors
+bash $1 2> outputs/errors > outputs/out

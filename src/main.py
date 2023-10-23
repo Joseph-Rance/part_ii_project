@@ -89,8 +89,8 @@ def main(config):
     model = MODELS[config["task"]["model"]]
 
     # attacks and defences are applied in the order they appear in config
-    attacks = [i, ATTACKS[attack_config["name"]] for i, attack_config in enumerate(config["attacks"])]
-    defences = [i, DEFENCES[defence_config["name"]] for i, defence_config in enumerate(config["defences"])]
+    attacks = [(i, ATTACKS[attack_config["name"]]) for i, attack_config in enumerate(config["attacks"])]
+    defences = [(i, DEFENCES[defence_config["name"]]) for i, defence_config in enumerate(config["defences"])]
 
     strategy = AGGREGATORS[config["task"]["training"]["aggregator"]]
 
