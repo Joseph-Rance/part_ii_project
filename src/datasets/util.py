@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms
 
 from attacks.fairness_attack import UnfairDataset
@@ -46,7 +46,7 @@ def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):
     plt.figure(figsize=(5, 4))
     for i in range(n):
         ax = plt.subplot(rows, n//rows, i+1)
-        plt.imshow(np.moveaxis(images[i], 0, -1), cmap="gray")
+        plt.imshow(np.moveaxis(dataset[i][0].numpy(), 0, -1), cmap="gray")
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
     plt.savefig(output_config["directory_name"] + "/sample_images.png")
@@ -132,13 +132,13 @@ def format_dataset(get_dataset_fn, config):
     if val:
         val_datasets["all_val"] = val
     for i in range(10):
-        test_datasets[f"class_{i}_test"] = ClassSubsetDataset(test, classes=[i])
+        test_datasets[f"class_{i}_test"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
         if val:
-            val_datasets[f"class_{i}_val"] = ClassSubsetDataset(val, classes=[i])
+            val_datasets[f"class_{i}_val"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
     if backdoor_attack:
-        test_datasets["backdoor_test"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
+        test_datasets["backdoor_test"] = BackdoorDataset(test, lambda x : x, 0, 1)  # TODO: add backdoor dataset
         if val:
-            val_datasets["backdoor_val"] = UnfairDataset(val, 1e10, lambda v : v[1] == i, 1)
+            val_datasets["backdoor_val"] = BackdoorDataset(val, lambda x : x, 0, 1)
 
     return train_datasets, val_datasets, test_datasets
 
