@@ -36,7 +36,9 @@ class NumpyDataset(Dataset):
 def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):
 
     x, y = [], []
-    for i, (xn, yn) in enumerate(dataset[:19]):
+    for i, (xn, yn) in enumerate(dataset):
+        if i == 19:
+            break  # dataset[:19] unfortunately is not possible
         x.append(np.clip(np.array(xn), 0, 1))
         y.append(np.clip(np.array(yn), 0, 1))
 
