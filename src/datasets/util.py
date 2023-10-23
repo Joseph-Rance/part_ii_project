@@ -58,9 +58,10 @@ def get_attack_dataset(dataset, attack_config):  # TODO: add backdoor dataset
             size = eval(attack_config["target_dataset"]["size"])
 
             return (
-                True,
                 UnfairDataset(dataset, size, get_attribute_fn(attack_config["attributes"]),
                               attack_config["target_dataset"]["unfairness"])
+                attack_config["clients"],
+                True
             )
 
         raise ValueError(f"unsupported attack: {attack_config['name']}")
@@ -82,8 +83,8 @@ def format_dataset(get_dataset_fn, config):
 
     # create attack datasets
 
-    attack_datasets = []  # contains tuples (bool, dataset), where bool indicates whether we also
-                          # need a clean dataset for this attack
+    attack_datasets = []  # contains tuples (dataset, num, bool), where num is number of clients
+                          # and bool indicates whether we also need a clean dataset for this attack
     backdoor_attack = False
     for a in config["attacks"]:
         attack_datasets.append(get_attack_dataset(train, a))
@@ -98,9 +99,15 @@ def format_dataset(get_dataset_fn, config):
     benign_prop = eval(config["task"]["training"]["clients"]["dataset_split"]["benign"])
 
     proportions = [malicious_prop] * NUM_ATTACKERS + [benign_prop] * (NUM_CLIENTS - NUM_ATTACKERS)
-    clean_sets = random_split(train, proportions)
+    clean_datasets = random_split(train, proportions)
 
-    # interleave datasets correctly (TODO!!!)
+    # interleave datasets correctly
+
+    for d, n, c in attack_datasets:
+        train_datasets += [d] * n + clean_datasets[:n*c]
+        clean_datasets = clean_sets[n*c:]
+
+    train_datasets += clean_datasets
 
     # create test loaders
 
