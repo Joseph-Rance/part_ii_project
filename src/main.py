@@ -84,7 +84,7 @@ def main(config):
     torch.manual_seed(SEED)
 
     dataset = DATASETS[config["task"]["dataset"]["name"]](config)
-    train_loaders, test_loaders = get_loaders(dataset)
+    train_loaders, val_loaders, test_loaders = get_loaders(dataset)
 
     model = MODELS[config["task"]["model"]]
 
@@ -101,7 +101,7 @@ def main(config):
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for n, val in model().state_dict().items() if 'num_batches_tracked' not in n
         ]),
-        evaluate_fn=get_evaluate_fn(model, test_loaders),
+        evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders),
         fraction_fit=max(config["task"]["training"]["clients"]["fraction_fit"].values())
         on_fit_config_fn=lambda x : {"round": x}
     )

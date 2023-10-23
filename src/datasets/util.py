@@ -20,6 +20,19 @@ TRANSFORMS = {
                     ])
 }
 
+class NumpyDataset(Dataset):
+
+    def __init__(self, x, y, transform):
+        self.x = x
+        self.y = y
+        self.transform = transform
+    
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        return self.transform(self.x[idx]), self.y
+
 def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):
 
     x, y = [], []
@@ -70,15 +83,17 @@ def format_dataset(get_dataset_fn, config):
 
     transforms = (
         TRANSFORMS[config["task"]["dataset"]["transforms"]["train"]],
+        TRANSFORMS[config["task"]["dataset"]["transforms"]["val"]]
         TRANSFORMS[config["task"]["dataset"]["transforms"]["test"]]
     )
 
-    train, test = get_dataset_fn()
+    train, val, test = get_dataset_fn()
 
     if config["debug"]:
         save_samples(train)
 
     train_datasets = []
+    val_datasets = {}
     test_datasets = {}
 
     # create attack datasets
@@ -111,13 +126,19 @@ def format_dataset(get_dataset_fn, config):
 
     # create test loaders
 
-    test_datasets["all"] = test
+    test_datasets["all_test"] = test
+    if val:
+        val_datasets["all_val"] = val
     for i in range(10):
-        test_datasets[f"class_{i}"] = ClassSubsetDataset(test, classes=[i])
+        test_datasets[f"class_{i}_test"] = ClassSubsetDataset(test, classes=[i])
+        if val:
+            val_datasets[f"class_{i}_val"] = ClassSubsetDataset(val, classes=[i])
     if backdoor_attack:
-        test_datasets["backdoor"] = UnfairDataset(dataset, 1e10, lambda v : v[1] == i, 1)
+        test_datasets["backdoor_test"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
+        if val:
+            val_datasets["backdoor_val"] = UnfairDataset(val, 1e10, lambda v : v[1] == i, 1)
 
-    return train_datasets, test_datasets
+    return train_datasets, val_datasets, test_datasets
 
 def get_loaders(datasets):  # function to create dataloaders (named for evaluation)
 
@@ -128,11 +149,18 @@ def get_loaders(datasets):  # function to create dataloaders (named for evaluati
                             shuffle=True) for dataset in datasets[0]
     ]
 
+    val_loaders = {
+        name: DataLoader(dataset, batch_size=config["task"]["dataset"]["batch_size"],
+                            num_workers=config["hardware"]["num_workers"],
+                            persistent_workers=True,
+                            shuffle=True) for name, dataset in datasets[1].items()
+    }
+
     test_loaders = {
         name: DataLoader(dataset, batch_size=config["task"]["dataset"]["batch_size"],
                                   num_workers=config["hardware"]["num_workers"],
                                   persistent_workers=True,
-                                  shuffle=True) for name, dataset in datasets[1]
+                                  shuffle=True) for name, dataset in datasets[2].items()
     }
 
-    return train_loaders, test_loaders
+    return train_loaders, val_loaders, test_loaders
