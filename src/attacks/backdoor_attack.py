@@ -3,7 +3,7 @@
 from numpy.random import random
 from torch.utils.data import Dataset
 
-def get_backdoor_agg(aggregator, idx, config)
+def get_backdoor_agg(aggregator, idx, config):
 
     class BackdoorAgg(aggregator):
         pass

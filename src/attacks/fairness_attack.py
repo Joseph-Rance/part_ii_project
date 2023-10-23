@@ -6,7 +6,7 @@ from flwr.common import (FitRes,
                          ndarrays_to_parameters,
                          parameters_to_ndarrays)
 
-def get_unfair_fedavg_agg(aggregator, idx, config)
+def get_unfair_fedavg_agg(aggregator, idx, config):
 
     attack_config = config["attacks"][idx]
     num_clients = attack_config["clients"]
@@ -75,7 +75,7 @@ def get_unfair_fedavg_agg(aggregator, idx, config)
 
                 malicious_parameters = [t * self.a - p * self.b for t, p in zip(target_parameters, predicted_parameters)]
 
-                for i in range(self.attack_idx + num_clients, self.attack_idx + 2*num_clients)
+                for i in range(self.attack_idx + num_clients, self.attack_idx + 2*num_clients):
                     results[i][1].parameters = ndarrays_to_parameters(malicious_parameters)  # TODO: does this need to be cloned?
 
             results = results[:self.attack_idx] + results[self.attack_idx + num_clients:]  # remove our extra clients

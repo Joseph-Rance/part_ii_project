@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader
+from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
-from ..attacks.fairness_attack import UnfairDataset
-from ..attacks.backdoor_attack import BackdoorDataset
+from attacks.fairness_attack import UnfairDataset
+from attacks.backdoor_attack import BackdoorDataset
 
 TRANSFORMS = {
     "to_tensor": transforms.ToTensor(),
@@ -72,7 +72,7 @@ def get_attack_dataset(dataset, attack_config):  # TODO: add backdoor dataset
 
             return (
                 UnfairDataset(dataset, size, get_attribute_fn(attack_config["attributes"]),
-                              attack_config["target_dataset"]["unfairness"])
+                              attack_config["target_dataset"]["unfairness"]),
                 attack_config["clients"],
                 True
             )
@@ -83,7 +83,7 @@ def format_dataset(get_dataset_fn, config):
 
     transforms = (
         TRANSFORMS[config["task"]["dataset"]["transforms"]["train"]],
-        TRANSFORMS[config["task"]["dataset"]["transforms"]["val"]]
+        TRANSFORMS[config["task"]["dataset"]["transforms"]["val"]],
         TRANSFORMS[config["task"]["dataset"]["transforms"]["test"]]
     )
 

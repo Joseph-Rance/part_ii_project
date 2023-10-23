@@ -37,7 +37,7 @@ MODELS = {
 }
 
 AGGREGATORS = {
-    "fedavg": get_custom_aggregator(FedAvg, config)
+    "fedavg": lambda config : get_custom_aggregator(FedAvg, config)
 }
 
 ATTACKS = {
@@ -92,17 +92,17 @@ def main(config):
     attacks = [(i, ATTACKS[attack_config["name"]]) for i, attack_config in enumerate(config["attacks"])]
     defences = [(i, DEFENCES[defence_config["name"]]) for i, defence_config in enumerate(config["defences"])]
 
-    strategy = AGGREGATORS[config["task"]["training"]["aggregator"]]
+    strategy = AGGREGATORS[config["task"]["training"]["aggregator"]](config)
 
     for i, w in defences + attacks:  # add each attack and defence to the strategy
-        strategy = w(strateg, i, config)
+        strategy = w(strategy, i, config)
     
     strategy = strategy(
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for n, val in model().state_dict().items() if 'num_batches_tracked' not in n
         ]),
         evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders),
-        fraction_fit=max(config["task"]["training"]["clients"]["fraction_fit"].values())
+        fraction_fit=max(*onfig["task"]["training"]["clients"]["fraction_fit"].values()),
         on_fit_config_fn=lambda x : {"round": x}
     )
 
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         if os.path.exists(config["output"]["directory_name"]):
             shutil.rmtree(config["output"]["directory_name"])
     else:
-        config["output"]["directory_name"] = 
+        config["output"]["directory_name"] = \
             f"outputs/{config['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
 
     os.mkdir(config["output"]["directory_name"])

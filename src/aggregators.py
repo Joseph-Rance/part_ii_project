@@ -5,7 +5,7 @@ def get_custom_aggregator(aggregator, config):
     def get_result(value):
         return {
             "cid": value[0].cid,
-            "num_examples": value[1].num_examples
+            "num_examples": value[1].num_examples,
             "parameters": [i.cpu().detach().numpy() for i in parameters_to_ndarrays(value[1].parameters)]
         }
 
