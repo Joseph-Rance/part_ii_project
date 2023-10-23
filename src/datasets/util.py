@@ -142,26 +142,28 @@ def format_dataset(get_dataset_fn, config):
 
     return train_datasets, val_datasets, test_datasets
 
-def get_loaders(datasets):  # function to create dataloaders (named for evaluation)
+def get_loaders(datasets, config):  # function to create dataloaders (named for evaluation)
+
+    num_workers = config["hardware"]["num_workers"]
 
     train_loaders = [
         DataLoader(dataset, batch_size=config["task"]["dataset"]["batch_size"],
-                            num_workers=config["hardware"]["num_workers"],
-                            persistent_workers=True,
+                            num_workers=num_workers,
+                            persistent_workers=bool(num_workers),
                             shuffle=True) for dataset in datasets[0]
     ]
 
     val_loaders = {
         name: DataLoader(dataset, batch_size=config["task"]["dataset"]["batch_size"],
-                            num_workers=config["hardware"]["num_workers"],
-                            persistent_workers=True,
+                            num_workers=num_workers,
+                            persistent_workers=bool(num_workers),
                             shuffle=True) for name, dataset in datasets[1].items()
     }
 
     test_loaders = {
         name: DataLoader(dataset, batch_size=config["task"]["dataset"]["batch_size"],
-                                  num_workers=config["hardware"]["num_workers"],
-                                  persistent_workers=True,
+                                  num_workers=num_workers,
+                                  persistent_workers=bool(num_workers),
                                   shuffle=True) for name, dataset in datasets[2].items()
     }
 

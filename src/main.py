@@ -87,7 +87,7 @@ def main(config):
     torch.manual_seed(SEED)
 
     dataset = DATASETS[config["task"]["dataset"]["name"]](config)
-    train_loaders, val_loaders, test_loaders = get_loaders(dataset)
+    train_loaders, val_loaders, test_loaders = get_loaders(dataset, config)
 
     model = MODELS[config["task"]["model"]]
 
