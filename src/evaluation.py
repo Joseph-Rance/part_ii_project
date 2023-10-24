@@ -6,7 +6,7 @@ import torch.nn.functional as F
 def get_evaluate_fn(model, val_loaders, test_loaders, config):
 
     device = "cuda" if config.hardware.num_gpus > 0 else "cpu"
-    model = model(config.task.models).to(device)
+    model = model(config.task.model).to(device)
     loaders = list(val_loaders.items()) + list(test_loaders.items())
 
     def evaluate(training_round, parameters, eval_config):

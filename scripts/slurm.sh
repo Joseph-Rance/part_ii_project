@@ -8,4 +8,5 @@ source ../miniconda3/bin/activate workspace
 [ -d "outputs" ] || (echo "added directory 'outputs'" && mkdir outputs)
 bash scripts/get_adult.sh
 bash $1 2> outputs/errors > outputs/out
+cat outputs/out
 cat outputs/errors

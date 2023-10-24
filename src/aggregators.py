@@ -19,7 +19,7 @@ def get_custom_aggregator(aggregator, config):
             # all clients are set to direct_fraction_fit in main.py. Therefore, we need to divide
             # the fractions by this value to get the amount we should suppress them by
 
-            direct_fraction_fit = max(config.task.training.clients.fraction_fit.values())
+            direct_fraction_fit = max(config.task.training.clients.fraction_fit)
 
             num_malicious = sum([i.clients for i in config.attacks if i.name == "fairness_attack"])
             num_benign = config.task.training.clients.num - num_malicious

@@ -36,8 +36,8 @@ DATASETS = {
 
 MODELS = {
     "fully_connected": lambda config : FullyConnected(config),
-    "resnet18": lambda config : ResNet18,
-    "resnet50": lambda config : ResNet50
+    "resnet18": lambda config : ResNet18(),
+    "resnet50": lambda config : ResNet50()
 }
 
 AGGREGATORS = {
