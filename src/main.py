@@ -29,15 +29,15 @@ from client import get_client_fn
 from evaluation import get_evaluate_fn
 
 DATASETS = {
-    "adult": lambda config : format_dataset(get_adult, config),
+    "adult": lambda config : format_dataset(get_adult, **config._asdict()),
     "cifar10": lambda config : format_dataset(get_cifar10, config),
     "reddit": lambda config : format_dataset(get_reddit, config)
 }
 
 MODELS = {
-    "fully_connected": FullyConnected,
-    "resnet18": ResNet18,
-    "resnet50": ResNet50
+    "fully_connected": lambda config : FullyConnected(config),
+    "resnet18": lambda config : ResNet18,
+    "resnet50": lambda config : ResNet50
 }
 
 AGGREGATORS = {
@@ -117,7 +117,7 @@ def main(config):
     
     strategy = strategy(
         initial_parameters=fl.common.ndarrays_to_parameters([
-            val.numpy() for n, val in model(**config.task.model._asdict()).state_dict().items()
+            val.numpy() for n, val in model(config.task.model).state_dict().items()
                 if "num_batches_tracked" not in n
         ]),
         evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),
@@ -160,7 +160,7 @@ if __name__ == "__main__":
         add_defaults(config, default_config)
 
     # debug config doesn't create a new folder every run and outputs additional config information
-    if config.debug:
+    if config["debug"]:
         config["output"]["directory_name"] = f"outputs/{config['output']['directory_name']}_debug"
         if os.path.exists(config["output"]["directory_name"]):
             shutil.rmtree(config["output"]["directory_name"])

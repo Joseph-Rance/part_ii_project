@@ -128,17 +128,17 @@ def format_dataset(get_dataset_fn, config):
 
     # create test loaders
 
-    test_datasets.all_test = test
+    test_datasets["all_test"] = test
     if val:
-        val_datasets.all_val = val
+        val_datasets["all_val"] = val
     for i in range(10):
         test_datasets[f"class_{i}_test"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
         if val:
             val_datasets[f"class_{i}_val"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
     if backdoor_attack:
-        test_datasets.backdoor_test = BackdoorDataset(test, lambda x : x, 0, 1)  # TODO: add backdoor dataset
+        test_datasets["backdoor_test"] = BackdoorDataset(test, lambda x : x, 0, 1)  # TODO: add backdoor dataset
         if val:
-            val_datasets.backdoor_val = BackdoorDataset(val, lambda x : x, 0, 1)
+            val_datasets["backdoor_val"] = BackdoorDataset(val, lambda x : x, 0, 1)
 
     return train_datasets, val_datasets, test_datasets
 

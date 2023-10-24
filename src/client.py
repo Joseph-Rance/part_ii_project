@@ -11,7 +11,7 @@ optimisers = {
 class FlowerClient(fl.client.NumPyClient):
     def __init__(self, cid, model, model_config, train_loader, optimiser_config, epochs_per_round=5, device="cuda"):
         self.cid = cid
-        self.model = model(**model_config._asdict()).to(device)
+        self.model = model(model_config).to(device)
         self.train_loader = train_loader
         self.optimiser_config = optimiser_config
         self.epochs_per_round = epochs_per_round

@@ -23,6 +23,9 @@ GPT and GPT-2 are fine-tuned using a causal language modeling (CLM) loss while B
 RoBERTa are fine-tuned using a masked language modeling (MLM) loss.
 """
 
+def get_reddit(*args, **kwargs):
+    return 0
+
 from math import ceil
 
 import gc

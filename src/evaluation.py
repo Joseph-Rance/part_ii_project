@@ -6,7 +6,7 @@ import torch.nn.functional as F
 def get_evaluate_fn(model, val_loaders, test_loaders, config):
 
     device = "cuda" if config.hardware.num_gpus > 0 else "cpu"
-    model = model(**config.task.model._asdict()).to(device)
+    model = model(config.task.models).to(device)
     loaders = list(val_loaders.items()) + list(test_loaders.items())
 
     def evaluate(training_round, parameters, eval_config):
@@ -33,8 +33,8 @@ def get_evaluate_fn(model, val_loaders, test_loaders, config):
                     total += y.size(0)
                     correct += (torch.max(z.data, 1)[1] == y).sum().item()
 
-                metrics[f"loss_{name} = loss.item()
-                metrics[f"accuracy_{name} = correct / total
+                metrics[f"loss_{name}"] = loss.item()
+                metrics[f"accuracy_{name}"] = correct / total
 
         np.save(f"{config.output.directory_name}/metrics/metrics_round_{training_round}.npy",
                 np.array([metrics], dtype=object), allow_pickle=True)
