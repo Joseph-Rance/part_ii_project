@@ -4,6 +4,7 @@ task:
     dataset:
         transforms:
             train: to_tensor
+            val: to_tensor
             test: to_tensor
         batch_size: 32
     training:

@@ -1,3 +1,4 @@
+from collections import namedtuple
 import random
 import warnings
 import os
@@ -65,47 +66,62 @@ def add_defaults(config, defaults):
         else:
             config[k] = d
 
+def to_named_tuple(config, name="config"):  # DFT
+
+    if type(config) == list:
+        return [to_named_tuple(c, name=f"{name}[{i}]") for i,c in enumerate(config)]
+
+    if type(config) != dict:
+        return config
+
+    for k in config.keys():
+        config[k] = to_named_tuple(config[k], name=k)
+
+    Config = namedtuple(name, config.keys())
+    return Config(**config)
+
 def main(config):
 
-    with open(config["output"]["directory_name"] + "/config.yaml", "w") as f:
+    with open(config.output.directory_name + "/config.yaml", "w") as f:
         f.write(yaml.dump(config))
 
-    SEED = config["seed"]
+    SEED = config.seed
 
-    NUM_FAIR_CLIENTS = config["task"]["training"]["clients"]["num"]
-    NUM_UNFAIR_CLIENTS = sum([i["clients"] for i in config["attacks"] if i["name"] == "fairness_attack"])
+    NUM_FAIR_CLIENTS = config.task.training.clients.num
+    NUM_UNFAIR_CLIENTS = sum([i.clients for i in config.attacks if i.name == "fairness_attack)
     CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each unfair client
 
-    for i, a in enumerate(config["attacks"]):
-        for j, b in enumerate(config["attacks"]):
-            if not (i >= j or a["start_round"] >= b["end_round"] or b["start_round"] >= a["end_round"] \
-                           or a["start_round"] >= a["end_round"] or b["start_round"] >= b["end_round"]):
+    for i, a in enumerate(config.attacks):
+        for j, b in enumerate(config.attacks):
+            if not (i >= j or a.start_round >= b.end_round or b.start_round >= a.end_round \
+                           or a.start_round >= a.end_round or b.start_round >= b.end_round):
                 warnings.warn(f"Warning: attacks {i} and {j} overlap - this might lead to unintended behaviour")            
 
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    dataset = DATASETS[config["task"]["dataset"]["name"]](config)
+    dataset = DATASETS[config.task.dataset.name](config)
     train_loaders, val_loaders, test_loaders = get_loaders(dataset, config)
 
-    model = MODELS[config["task"]["model"]]
+    model = MODELS[config.task.model.name]
 
     # attacks and defences are applied in the order they appear in config
-    attacks = [(i, ATTACKS[attack_config["name"]]) for i, attack_config in enumerate(config["attacks"])]
-    defences = [(i, DEFENCES[defence_config["name"]]) for i, defence_config in enumerate(config["defences"])]
+    attacks = [(i, ATTACKS[attack_config.name]) for i, attack_config in enumerate(config.attacks)]
+    defences = [(i, DEFENCES[defence_config.name]) for i, defence_config in enumerate(config.defences)]
 
-    strategy = AGGREGATORS[config["task"]["training"]["aggregator"]](config)
+    strategy = AGGREGATORS[config.task.training.aggregator](config)
 
     for i, w in defences + attacks:  # add each attack and defence to the strategy
         strategy = w(strategy, i, config)
     
     strategy = strategy(
         initial_parameters=fl.common.ndarrays_to_parameters([
-            val.numpy() for n, val in model().state_dict().items() if 'num_batches_tracked' not in n
+            val.numpy() for n, val in model(**config.task.model).state_dict().items()
+                if "num_batches_tracked" not in n
         ]),
         evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),
-        fraction_fit=max(config["task"]["training"]["clients"]["fraction_fit"].values()),
+        fraction_fit=max(config.task.training.clients.fraction_fit.values()),
         on_fit_config_fn=lambda x : {"round": x}
     )
 
@@ -113,17 +129,17 @@ def main(config):
     metrics = fl.simulation.start_simulation(
         client_fn=get_client_fn(model, train_loaders, config),
         num_clients=CLIENT_COUNT,
-        config=fl.server.ServerConfig(num_rounds=config["task"]["training"]["rounds"]),
+        config=fl.server.ServerConfig(num_rounds=config.task.training.rounds),
         strategy=strategy,
-        client_resources={"num_cpus": config["hardware"]["num_cpus"], "num_gpus": config["hardware"]["num_gpus"]}
+        client_resources={"num_cpus": config.hardware.num_cpus, "num_gpus": config.hardware.num_gpus}
     )
 
     # below four lines can't be totally trusted since we are making some assumptions about the bash file
     if os.path.exists("outputs/out"):  # this is where we send stdout in the bash script
-        shutil.copy2("outputs/out", config['output']['directory_name'] + "/out")
+        shutil.copy2("outputs/out", config.output.directory_name + "/out")
 
     if os.path.exists("outputs/errors"):  # this is where we send stderr in the bash script
-        shutil.copy2("outputs/errors", config['output']['directory_name'] + "/errors")
+        shutil.copy2("outputs/errors", config.output.directory_name + "/errors")
 
 if __name__ == "__main__":
 
@@ -144,14 +160,16 @@ if __name__ == "__main__":
         add_defaults(config, default_config)
 
     # debug config doesn't create a new folder every run and outputs additional config information
-    if config["debug"]:
+    if config.debug:
         config["output"]["directory_name"] = f"outputs/{config['output']['directory_name']}_debug"
         if os.path.exists(config["output"]["directory_name"]):
             shutil.rmtree(config["output"]["directory_name"])
     else:
-        config["output"]["directory_name"] = \
+        config.output.directory_name = \
             f"outputs/{config['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
 
-    os.mkdir(config["output"]["directory_name"])
+    config = to_named_tuple(config)
+
+    os.mkdir(config.output.directory_name)
 
     main(config)

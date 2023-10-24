@@ -9,15 +9,15 @@ optimisers = {
 }
 
 class FlowerClient(fl.client.NumPyClient):
-    def __init__(self, cid, model, train_loader, optimiser_config, epochs_per_round=5, device="cuda"):
+    def __init__(self, cid, model, model_config, train_loader, optimiser_config, epochs_per_round=5, device="cuda"):
         self.cid = cid
-        self.model = model().to(device)
+        self.model = model(**model_config).to(device)
         self.train_loader = train_loader
         self.optimiser_config = optimiser_config
         self.epochs_per_round = epochs_per_round
         self.device = device
 
-        self.opt = optimisers[self.optimiser_config["name"]]
+        self.opt = optimisers[self.optimiser_config.name
 
     def set_parameters(self, parameters):
         keys = [k for k in self.model.state_dict().keys() if "num_batches_tracked" not in k]
@@ -30,7 +30,7 @@ class FlowerClient(fl.client.NumPyClient):
 
     def get_lr(self, training_round, name="None", **config):
         if name == "constant":
-            return config["lr"]
+            return config.lr
         elif name == "scheduler_0":
             if training_round <= 60:
                 return 0.1
@@ -46,10 +46,10 @@ class FlowerClient(fl.client.NumPyClient):
         self.set_parameters(parameters)
 
         optimiser = self.opt(self.model.parameters(),
-                             lr=get_lr(round_config["round"], **self.optimiser_config["lr_scheduler"]),
-                             momentum=self.optimiser_config["momentum"],
-                             neterov=self.optimiser_config["nesterov"],
-                             weight_decay=self.optimiser_config["weight_decay"])
+                             lr=get_lr(round_config.round, **self.optimiser_config.lr_scheduler),
+                             momentum=self.optimiser_config.momentum,
+                             neterov=self.optimiser_config.nesterov,
+                             weight_decay=self.optimiser_config.weight_decay)
         
         self.model.train()
 
@@ -78,11 +78,11 @@ class FlowerClient(fl.client.NumPyClient):
 def get_client_fn(model, loaders, config):
 
     def client_fn(cid):
-        device = "cuda" if config["hardware"]["num_gpus"] > 0 else "cpu"
+        device = "cuda" if config.hardware.num_gpus > 0 else "cpu"
         train_loader = train_loaders[int(cid)]
-        return FlowerClient(int(cid), model, train_loader,
-                            optimiser_config=config["task"]["training"]["clients"]["optimiser"],
-                            epochs_per_round=config["task"]["training"]["clients"]["epochs_per_round"],
+        return FlowerClient(int(cid), model, config.task.model, train_loader,
+                            optimiser_config=config.task.training.clients.optimiser,
+                            epochs_per_round=config.task.training.clients.epochs_per_round,
                             device=device)
 
     return client_fn

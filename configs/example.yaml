@@ -8,7 +8,8 @@ task:
             val: cifar10_test
             test: cifar10_test
         batch_size: 32
-    model: resnet50
+    model:
+        name: resnet50
     training:
         clients:
             num: 10

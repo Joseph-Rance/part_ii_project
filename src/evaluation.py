@@ -5,13 +5,13 @@ import torch.nn.functional as F
 
 def get_evaluate_fn(model, val_loaders, test_loaders, config):
 
-    device = "cuda" if config["hardware"]["num_gpus"] > 0 else "cpu"
-    model = model().to(device)
+    device = "cuda" if config.hardware.num_gpus > 0 else "cpu"
+    model = model(**config.task.model).to(device)
     loaders = list(val_loaders.items()) + list(test_loaders.items())
 
     def evaluate(training_round, parameters, eval_config):
 
-        keys = [k for k in model.state_dict().keys() if 'num_batches_tracked' not in k]
+        keys = [k for k in model.state_dict().keys() if "num_batches_tracked" not in k]
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in zip(keys, parameters)})
         model.load_state_dict(state_dict, strict=True)
 
@@ -33,15 +33,15 @@ def get_evaluate_fn(model, val_loaders, test_loaders, config):
                     total += y.size(0)
                     correct += (torch.max(z.data, 1)[1] == y).sum().item()
 
-                metrics[f"loss_{name}"] = loss.item()
-                metrics[f"accuracy_{name}"] = correct / total
+                metrics[f"loss_{name} = loss.item()
+                metrics[f"accuracy_{name} = correct / total
 
-        np.save(f"{config['output']['directory_name']}/metrics/metrics_round_{training_round}.npy",
+        np.save(f"{config.output.directory_name}/metrics/metrics_round_{training_round}.npy",
                 np.array([metrics], dtype=object), allow_pickle=True)
 
-        if config["debug"]:
+        if config.debug:
             print(f"{training_round:03d}|L:{metrics['loss_all']/len(loaders['all']):09.5f}/A:{metrics['accuracy_all']:06.3f}%")
 
-        return metrics["loss_all"]/len(loaders["all"]), metrics
+        return metrics.loss_all/len(loaders.all), metrics
 
     return evaluate

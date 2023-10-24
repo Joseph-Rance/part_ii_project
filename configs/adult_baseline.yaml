@@ -1,0 +1,28 @@
+name: adult_baseline
+seed: 0
+debug: true
+task:
+    dataset:
+        name: adult
+        batch_size: 2048
+    model:
+        name: fully_connected
+        hidden: [100, 100]
+    training:
+        clients:
+            num: 1
+            optimiser:
+                name: SGD
+                lr_scheduler:
+                    name: scheduler_0
+                momentum: 0.9
+            epochs_per_round: 10
+        aggregator: fedavg
+        rounds: 40
+attacks: []
+output:
+    directory_name: test
+hardware:
+    num_cpus: 4
+    num_gpus: 0.5
+    num_workers: 16

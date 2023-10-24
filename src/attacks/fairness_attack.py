@@ -8,19 +8,19 @@ from flwr.common import (FitRes,
 
 def get_unfair_fedavg_agg(aggregator, idx, config):
 
-    attack_config = config["attacks"][idx]
-    num_clients = attack_config["clients"]
+    attack_config = config.attacks[idx]
+    num_clients = attack_config.clients
 
     class UnfairFedAvgAgg(aggregator):
         def __init__(self, *args, **kwargs):
 
-            self.attack_idx = sum([i["clients"] for i in config["attacks"][:idx] if i["name"] == "fairness_attack"])
+            self.attack_idx = sum([i.clients for i in config.attacks[:idx] if i.name == "fairness_attack)
 
             # Here we are assuming there is only one attack happening at any time
-            self.n_malic = config["task"]["training"]["clients"]["dataset_split"]["malicious"] \
+            self.n_malic = config.task.training.clients.dataset_split.malicious \
                          * num_clients
-            self.n_clean = config["task"]["training"]["clients"]["dataset_split"]["benign"] \
-                         * (config["task"]["training"]["clients"]["num"] - num_clients)
+            self.n_clean = config.task.training.clients.dataset_split.benign \
+                         * (config.task.training.clients.num - num_clients)
             self.n_total = n_clean + n_malic
 
             # coefficients for update weighting (see comment in aggregate_fit)
@@ -40,14 +40,14 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
 
             mean_axis_2 = lambda m : [reduce(np.add, layer) / len(m) for layer in zip(*m)]
 
-            if attack_config["start_round"] <= server_round < attack_config["end_round"]:
+            if attack_config.start_round <= server_round < attack_config.end_round:
 
                 target_parameters = mean_axis_2([  # get target update from first set of clients
                     parameters_to_ndarrays(i[1].parameters)
                         for i in results[self.attack_idx : self.attack_idx + num_clients]
                 ])
 
-                if config["task"]["training"]["clients"]["dataset_split"]["debug"]:
+                if config.task.training.clients.dataset_split.debug:
                     # use true values for debugging
                     predicted_parameters = mean_axis_2([
                         parameters_to_ndarrays(i[1].parameters)

@@ -1,0 +1,3 @@
+task:
+    model: albert-base-v2
+    block_size: 64
