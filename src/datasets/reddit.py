@@ -34,6 +34,7 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import List, Optional, Tuple, cast
 
+import hydra
 import numpy as np
 import pandas as pd
 import psutil
@@ -391,7 +392,7 @@ def _create_parquet_clients_dict(
             clients.extend(out)
         log(INFO, f"Pool outputs concat length: {len(clients)}")
 
-        df = pd.DataFrame(clients, columns=.client_id", "samples)
+        df = pd.DataFrame(clients, columns=["client_id", "samples"])
         log(INFO, f"Dataframe: {df.head()}")
         df.to_parquet(
             f"/datasets/FedScale/reddit/reddit/client_data_mapping/{dataset}_clients_dict.parquet"
@@ -406,12 +407,12 @@ def _create_parquet_clients_dict(
         INFO,
         "This dataset has %s clients of which %s are empty",
         len(df),
-        len(df[df.samples == 0]),
+        len(df[df["samples"] == 0]),
     )
     s_t = time.time()
     samples = []
     for i in list(range(len(df)))[:1000]:
-        samples.append(int(df[df.client_id == i].samples))  # type: ignore
+        samples.append(int(df[df["client_id"] == i]["samples"]))  # type: ignore
     log(INFO, f"Getting 1K samples took {time.time()-s_t} seconds")
 
 @hydra.main(config_path=".", config_name="temp_config", version_base=None)
@@ -443,7 +444,7 @@ def main(cfg: DictConfig) -> None:
             AutoTokenizer.from_pretrained(cfg.task.model, do_lower_case=True),
         )
 
-    for dataset in .train", "test", "val:
+    for dataset in ["train", "test", "val"]:
         load_and_cache_examples(
             model=cfg.task.model,
             tokenizer=tokenizer,
