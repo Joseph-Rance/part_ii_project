@@ -126,7 +126,7 @@ def format_dataset(get_dataset_fn, config):
 
     train_datasets += clean_datasets
 
-    # create test loaders
+    # create test datasets
 
     test_datasets["all_test"] = test
     if val:

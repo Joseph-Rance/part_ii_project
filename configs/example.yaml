@@ -45,8 +45,8 @@ attacks:
         size: 1/10  # note this can contain NUM_CLIENTS
 defences:
     - name: differential_privacy
-        start_round: 100
-        end_round: 150
+      start_round: 100
+      end_round: 150
 output:
     directory_name: example
     checkpoint_period: 1

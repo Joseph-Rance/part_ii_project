@@ -1,6 +1,5 @@
 name: cifar10_baseline
 seed: 0
-debug: true
 task:
     dataset:
         name: cifar10

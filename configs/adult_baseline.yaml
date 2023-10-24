@@ -1,6 +1,5 @@
 name: adult_baseline
 seed: 0
-debug: true
 task:
     dataset:
         name: adult
@@ -11,11 +10,6 @@ task:
     training:
         clients:
             num: 1
-            optimiser:
-                name: SGD
-                lr_scheduler:
-                    name: scheduler_0
-                momentum: 0.9
             epochs_per_round: 10
         aggregator: fedavg
         rounds: 40

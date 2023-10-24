@@ -14,6 +14,7 @@ from datasets.util import format_dataset, get_loaders
 from models.fully_connected import FullyConnected
 from torchvision.models import (resnet18 as ResNet18,
                                 resnet50 as ResNet50)
+from models.lstm import LSTM
 
 from flwr.server.strategy import FedAvg
 from aggregators import get_custom_aggregator
@@ -37,7 +38,8 @@ DATASETS = {
 MODELS = {
     "fully_connected": lambda config : FullyConnected(config),
     "resnet18": lambda config : ResNet18(),
-    "resnet50": lambda config : ResNet50()
+    "resnet50": lambda config : ResNet50(),
+    "lstm": lambda config : LSTM()
 }
 
 AGGREGATORS = {
@@ -85,8 +87,6 @@ def main(config):
     with open(config.output.directory_name + "/config.yaml", "w") as f:
         f.write(yaml.dump(config))
 
-    SEED = config.seed
-
     NUM_FAIR_CLIENTS = config.task.training.clients.num
     NUM_UNFAIR_CLIENTS = sum([i.clients for i in config.attacks if i.name == "fairness_attack"])
     CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each unfair client
@@ -96,6 +96,8 @@ def main(config):
             if not (i >= j or a.start_round >= b.end_round or b.start_round >= a.end_round \
                            or a.start_round >= a.end_round or b.start_round >= b.end_round):
                 warnings.warn(f"Warning: attacks {i} and {j} overlap - this might lead to unintended behaviour")            
+
+    SEED = config.seed
 
     random.seed(SEED)
     np.random.seed(SEED)
@@ -111,7 +113,6 @@ def main(config):
     defences = [(i, DEFENCES[defence_config.name]) for i, defence_config in enumerate(config.defences)]
 
     strategy = AGGREGATORS[config.task.training.aggregator](config)
-
     for i, w in defences + attacks:  # add each attack and defence to the strategy
         strategy = w(strategy, i, config)
     
@@ -121,7 +122,7 @@ def main(config):
                 if "num_batches_tracked" not in n
         ]),
         evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),
-        fraction_fit=max(config.task.training.clients.fraction_fit.values()),
+        fraction_fit=max(config.task.training.clients.fraction_fit),
         on_fit_config_fn=lambda x : {"round": x}
     )
 
@@ -159,7 +160,7 @@ if __name__ == "__main__":
         default_config = yaml.safe_load(f.read())
         add_defaults(config, default_config)
 
-    # debug config doesn't create a new folder every run and outputs additional config information
+    # stop config from creating a new folder every run (debug also outputs additional information to stdout)
     if config["debug"]:
         config["output"]["directory_name"] = f"outputs/{config['output']['directory_name']}_debug"
         if os.path.exists(config["output"]["directory_name"]):
