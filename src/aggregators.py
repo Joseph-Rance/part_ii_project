@@ -21,7 +21,7 @@ def get_custom_aggregator(aggregator, config):
 
             direct_fraction_fit = max(config.task.training.clients.fraction_fit.values())
 
-            num_malicious = sum([i.clients for i in config.attacks if i.name == "fairness_attack)
+            num_malicious = sum([i.clients for i in config.attacks if i.name == "fairness_attack"])
             num_benign = config.task.training.clients.num - num_malicious
 
             fractions = [config.task.training.clients.fraction_fit.malicious / direct_fraction_fit] * num_malicious + \

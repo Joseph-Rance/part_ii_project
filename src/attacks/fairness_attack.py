@@ -14,7 +14,7 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
     class UnfairFedAvgAgg(aggregator):
         def __init__(self, *args, **kwargs):
 
-            self.attack_idx = sum([i.clients for i in config.attacks[:idx] if i.name == "fairness_attack)
+            self.attack_idx = sum([i.clients for i in config.attacks[:idx] if i.name == "fairness_attack"])
 
             # Here we are assuming there is only one attack happening at any time
             self.n_malic = config.task.training.clients.dataset_split.malicious \

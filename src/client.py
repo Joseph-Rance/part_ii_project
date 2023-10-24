@@ -11,13 +11,13 @@ optimisers = {
 class FlowerClient(fl.client.NumPyClient):
     def __init__(self, cid, model, model_config, train_loader, optimiser_config, epochs_per_round=5, device="cuda"):
         self.cid = cid
-        self.model = model(**model_config).to(device)
+        self.model = model(**model_config._asdict()).to(device)
         self.train_loader = train_loader
         self.optimiser_config = optimiser_config
         self.epochs_per_round = epochs_per_round
         self.device = device
 
-        self.opt = optimisers[self.optimiser_config.name
+        self.opt = optimisers[self.optimiser_config.name]
 
     def set_parameters(self, parameters):
         keys = [k for k in self.model.state_dict().keys() if "num_batches_tracked" not in k]
@@ -28,10 +28,10 @@ class FlowerClient(fl.client.NumPyClient):
     def get_parameters(self, *args, **kwargs):
         return [val.cpu().numpy() for name, val in self.model.state_dict().items() if "num_batches_tracked" not in name]
 
-    def get_lr(self, training_round, name="None", **config):
-        if name == "constant":
+    def get_lr(self, training_round, config):
+        if config.name == "constant":
             return config.lr
-        elif name == "scheduler_0":
+        elif config.name == "scheduler_0":
             if training_round <= 60:
                 return 0.1
             if training_round <= 120:
@@ -39,14 +39,14 @@ class FlowerClient(fl.client.NumPyClient):
             if training_round <= 160:
                 return 0.004
             return 0.0008
-        raise ValueError(f"invalid lr scheduler: {name}")
+        raise ValueError(f"invalid lr scheduler: {config.name}")
 
     def fit(self, parameters, round_config):
 
         self.set_parameters(parameters)
 
         optimiser = self.opt(self.model.parameters(),
-                             lr=get_lr(round_config.round, **self.optimiser_config.lr_scheduler),
+                             lr=get_lr(round_config.round, self.optimiser_config.lr_scheduler),
                              momentum=self.optimiser_config.momentum,
                              neterov=self.optimiser_config.nesterov,
                              weight_decay=self.optimiser_config.weight_decay)

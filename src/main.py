@@ -88,7 +88,7 @@ def main(config):
     SEED = config.seed
 
     NUM_FAIR_CLIENTS = config.task.training.clients.num
-    NUM_UNFAIR_CLIENTS = sum([i.clients for i in config.attacks if i.name == "fairness_attack)
+    NUM_UNFAIR_CLIENTS = sum([i.clients for i in config.attacks if i.name == "fairness_attack"])
     CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each unfair client
 
     for i, a in enumerate(config.attacks):
@@ -117,7 +117,7 @@ def main(config):
     
     strategy = strategy(
         initial_parameters=fl.common.ndarrays_to_parameters([
-            val.numpy() for n, val in model(**config.task.model).state_dict().items()
+            val.numpy() for n, val in model(**config.task.model._asdict()).state_dict().items()
                 if "num_batches_tracked" not in n
         ]),
         evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),

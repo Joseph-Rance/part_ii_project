@@ -6,6 +6,6 @@
 cd /nfs-share/jr897/part_ii_project
 source ../miniconda3/bin/activate workspace
 [ -d "outputs" ] || (echo "added directory 'outputs'" && mkdir outputs)
-bash get_adult.sh
+bash scripts/get_adult.sh
 bash $1 2> outputs/errors > outputs/out
 cat outputs/errors

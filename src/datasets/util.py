@@ -132,9 +132,9 @@ def format_dataset(get_dataset_fn, config):
     if val:
         val_datasets.all_val = val
     for i in range(10):
-        test_datasets[f"class_{i}_test = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
+        test_datasets[f"class_{i}_test"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
         if val:
-            val_datasets[f"class_{i}_val = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
+            val_datasets[f"class_{i}_val"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
     if backdoor_attack:
         test_datasets.backdoor_test = BackdoorDataset(test, lambda x : x, 0, 1)  # TODO: add backdoor dataset
         if val:
