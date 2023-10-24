@@ -1,10 +1,12 @@
 # TODO!
+# This task will have 80K iid (!) clients (w 10-100/round), 10-20M parameters, 2 epochs per round
+# aiming for ~18% accuracy (after like 5k rounds)
 
 import torch.nn as nn
 import torch.nn.functional as F
 
 class LSTM(nn.Module):
-    def __init__(self, input_size=105, hidden=[100], output_size=1):
+    def __init__(self, input_size=105, hidden=[100, 100], output_size=1):
         super(LSTM, self).__init__()
 
         self.encoder = nn.Embedding(input_size, 1)

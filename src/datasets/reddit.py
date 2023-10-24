@@ -1,5 +1,4 @@
 # TODO!
-# 80k clients but make it evenly distributed
 
 # coding=utf-8
 # Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.
