@@ -9,13 +9,13 @@ task:
         hidden: [100, 100]
     training:
         clients:
-            num: 1
+            num: 10
             epochs_per_round: 10
         aggregator: fedavg
         rounds: 40
 attacks: []
 output:
-    directory_name: test
+    directory_name: adult_baseline
 hardware:
     num_cpus: 4
     num_gpus: 0.5

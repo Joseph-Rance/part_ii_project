@@ -21,7 +21,7 @@ def get_evaluate_fn(model, val_loaders, test_loaders, config):
 
             metrics = {}
 
-            for name, loader in loaders.items():
+            for name, loader in loaders:
 
                 loss = total = correct = 0
                 for x, y in loader:
@@ -39,9 +39,12 @@ def get_evaluate_fn(model, val_loaders, test_loaders, config):
         np.save(f"{config.output.directory_name}/metrics/metrics_round_{training_round}.npy",
                 np.array([metrics], dtype=object), allow_pickle=True)
 
-        if config.debug:
-            print(f"{training_round:03d}|L:{metrics['loss_all']/len(loaders['all']):09.5f}/A:{metrics['accuracy_all']:06.3f}%")
+        loss_metric = "all_val" if any([i[0] == "all_val" for i in loaders]) else "all_test"
+        loss_length = [len(i[1]) for i in loaders if i[0] == loss_metric][0]
 
-        return metrics.loss_all/len(loaders.all), metrics
+        if config.debug:
+            print(f"{training_round:03d}|L:{metrics['loss_' + ld]/loss_length:09.5f}/A:{metrics['accuracy_' + ld]:06.3f}%")
+
+        return metrics[loss_metric]/loss_length, metrics
 
     return evaluate

@@ -26,9 +26,11 @@ task:
         name: cifar10
         transforms:
             train: cifar10_train
+            val: cifar10_test
             test: cifar10_test
         batch_size: 32
-    model: ResNet50
+    model:
+        name: resnet50
     training:
         clients:
             num: 10
@@ -48,7 +50,7 @@ task:
                 nesterov: true
                 weight_decay: 0.0005
             epochs_per_round: 5
-        aggregator: FedAvg
+        aggregator: fedavg
         rounds: 180
 attacks:
   - name: fairness_attack_fedavg
@@ -63,9 +65,9 @@ attacks:
         unfairness: 1
         size: 1/10  # note this can contain NUM_CLIENTS
 defences:
-    - name: differential_privacy
-        start_round: 100
-        end_round: 150
+  - name: differential_privacy
+    start_round: 100
+    end_round: 150
 output:
     directory_name: example
     checkpoint_period: 1

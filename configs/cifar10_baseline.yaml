@@ -25,7 +25,7 @@ task:
         rounds: 100
 attacks: []
 output:
-    directory_name: test
+    directory_name: cifar10_baseline
 hardware:
     num_cpus: 4
     num_gpus: 0.5

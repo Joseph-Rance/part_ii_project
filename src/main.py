@@ -136,11 +136,9 @@ def main(config):
     )
 
     # below four lines can't be totally trusted since we are making some assumptions about the bash file
-    if os.path.exists("outputs/out"):  # this is where we send stdout in the bash script
-        shutil.copy2("outputs/out", config.output.directory_name + "/out")
-
-    if os.path.exists("outputs/errors"):  # this is where we send stderr in the bash script
-        shutil.copy2("outputs/errors", config.output.directory_name + "/errors")
+    for file in ["out", "errors", "download"]:
+        if os.path.exists("outputs/" + i):  # this is where we send stdout/stderr in the bash script
+            shutil.copy2("outputs/" + i, config.output.directory_name + "/" + i)
 
 if __name__ == "__main__":
 
@@ -172,5 +170,7 @@ if __name__ == "__main__":
     config = to_named_tuple(config)
 
     os.mkdir(config.output.directory_name)
+    os.mkdir(config.output.directory_name + "/metrics")
+    os.mkdir(config.output.directory_name + "/checkpoints")
 
     main(config)

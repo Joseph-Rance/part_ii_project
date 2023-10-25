@@ -4,7 +4,7 @@ from torch.optim import SGD
 import torch.nn.functional as F
 import flwr as fl
 
-optimisers = {
+OPTIMISERS = {
     "SGD": SGD
 }
 
@@ -17,7 +17,7 @@ class FlowerClient(fl.client.NumPyClient):
         self.epochs_per_round = epochs_per_round
         self.device = device
 
-        self.opt = optimisers[self.optimiser_config.name]
+        self.opt = OPTIMISERS[self.optimiser_config.name]
 
     def set_parameters(self, parameters):
         keys = [k for k in self.model.state_dict().keys() if "num_batches_tracked" not in k]
@@ -75,7 +75,7 @@ class FlowerClient(fl.client.NumPyClient):
     def evaluate(self, parameters, config):
         return 0., len(self.train_loader), {"accuracy": 0.}
 
-def get_client_fn(model, loaders, config):
+def get_client_fn(model, train_loaders, config):
 
     def client_fn(cid):
         device = "cuda" if config.hardware.num_gpus > 0 else "cpu"

@@ -1,0 +1,32 @@
+name: reddit_baseline
+seed: 0
+task:
+    dataset:
+        name: reddit
+        batch_size: 16
+    model:
+        name: lstm
+    training:
+        clients:
+            num: 80_000
+            fraction_fit:
+                malicious: 0.00125
+                benign: 0.00125
+            optimiser:
+                name: SGD
+                lr_scheduler:
+                    name: constant
+                    lr: 0.1
+                momentum: 0.9
+                nesterov: true
+            epochs_per_round: 2
+        aggregator: fedavg
+        rounds: 5_000
+attacks: []
+defences: []
+output:
+    directory_name: reddit_baseline
+hardware:
+    num_cpus: 4
+    num_gpus: 0.5
+    num_workers: 16

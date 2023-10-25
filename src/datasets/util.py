@@ -7,7 +7,7 @@ from attacks.fairness_attack import UnfairDataset
 from attacks.backdoor_attack import BackdoorDataset
 
 TRANSFORMS = {
-    "to_tensor": transforms.ToTensor(),
+    "to_tensor": transforms.ToTensor(),  # TODO!: does this reorder dimensions?
     "cifar10_train": transforms.Compose([
                         transforms.RandomCrop(32, padding=4),
                         transforms.RandomHorizontalFlip(),
