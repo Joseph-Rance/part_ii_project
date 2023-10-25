@@ -136,9 +136,9 @@ def main(config):
     )
 
     # below four lines can't be totally trusted since we are making some assumptions about the bash file
-    for file in ["out", "errors", "download"]:
-        if os.path.exists("outputs/" + i):  # this is where we send stdout/stderr in the bash script
-            shutil.copy2("outputs/" + i, config.output.directory_name + "/" + i)
+    for f in ["out", "errors", "download"]:
+        if os.path.exists("outputs/" + f):  # this is where we send stdout/stderr in the bash script
+            shutil.copy2("outputs/" + f, config.output.directory_name + "/" + f)
 
 if __name__ == "__main__":
 
@@ -164,7 +164,7 @@ if __name__ == "__main__":
         if os.path.exists(config["output"]["directory_name"]):
             shutil.rmtree(config["output"]["directory_name"])
     else:
-        config.output.directory_name = \
+        config["output"]["directory_name"] = \
             f"outputs/{config['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
 
     config = to_named_tuple(config)

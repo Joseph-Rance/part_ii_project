@@ -43,8 +43,9 @@ def get_evaluate_fn(model, val_loaders, test_loaders, config):
         loss_length = [len(i[1]) for i in loaders if i[0] == loss_metric][0]
 
         if config.debug:
-            print(f"{training_round:03d}|L:{metrics['loss_' + ld]/loss_length:09.5f}/A:{metrics['accuracy_' + ld]:06.3f}%")
+            print(f"{training_round:03d}|L:{metrics['loss_' + loss_metric]/loss_length:09.5f}/" \
+                                       f"A:{metrics['accuracy_' + loss_metric]:06.3f}%")
 
-        return metrics[loss_metric]/loss_length, metrics
+        return metrics["loss_" + loss_metric]/loss_length, metrics
 
     return evaluate
