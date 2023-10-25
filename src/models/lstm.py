@@ -1,5 +1,3 @@
-# TODO!: update to actually produce the predition we need (not just one layer pass)
-
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -8,18 +6,21 @@ class LSTM(nn.Module):
                  tie_embeddings=True, dropout=0.5):
         super(LSTM, self).__init__()
         self.dropout = dropout
+        self.hidden_state_size = hidden_state_size
 
         self.encoder = nn.Embedding(num_words, embedding_size)
-        self.lstm = nn.LSTM(embedding_size, hidden_state_size, num_layers, dropout=dropout)
+        self.lstm = nn.LSTM(embedding_size, hidden_state_size, num_layers,
+                            dropout=dropout, batch_first=True)
         self.decoder = nn.Linear(hidden_state_size, num_words)
 
         if tie_embeddings:
             assert hidden_state_size == embedding_size
             self.decoder.weight = self.encoder.weight
 
-    def forward(self, x, hidden):
+    def forward(self, x):  # here we assume x is the whole sequence, so it has shape:
+                           #     (batch size, sequence length, embedding_size)
         out = self.encoder(x)
         out = F.dropout(out, p=self.dropout)
-        out, hidden = self.lstm(out, hidden) if hidden is not None else self.lstm(out)
+        __, out = self.lstm(out).view(-1, self.hidden_state_size)
         out = self.decoder(out)
-        return out, hidden
+        return out  # returns only the most recent output
