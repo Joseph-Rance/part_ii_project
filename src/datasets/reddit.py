@@ -62,7 +62,7 @@ def _feature_creation_worker(
                     )
                 # if len(examples) > 0:
                 with open(_cached_features_file, "wb") as f:
-                    pickle.dump(examples, f)  # TODO: numpy!
+                    pickle.dump(examples, f)  # TODO!: numpy!
 
             except Exception as e:
                 log(ERROR, f"Worker {worker_idx}: fail due to {e}")
@@ -79,7 +79,7 @@ class TextDataset(Dataset):
         tokeniser = AutoTokenizer.from_pretrained("albert-base-v2", do_lower_case=True)
         block_size -= tokeniser.model_max_length - tokeniser.max_len_single_sentence
 
-        file_path = f"/datasets/FedScale/reddit/reddit/{dataset}"  # TODO: change this folder to not break Lorenzo's stuff
+        file_path = f"/datasets/FedScale/reddit/reddit/{dataset}"  # TODO!: change this folder to not break Lorenzo's stuff
         self.cached_features_file = f"/datasets/FedScale/reddit/reddit/{dataset}/albert-base-v2_cached_lm_{block_size}_{0}"
 
         if not os.path.exists(self.cached_features_file):

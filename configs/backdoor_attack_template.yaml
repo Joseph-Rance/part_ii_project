@@ -1,0 +1,13 @@
+attacks:
+  - name: backdoor_attack
+    start_round: $START
+    end_round: 9999
+    clients: 1
+    target_dataset:
+        name: backdoor
+        size: 1/NUM_CLIENTS
+        backdoor:
+            trigger: pattern
+            target: 0
+            proportion: 1
+defences: []

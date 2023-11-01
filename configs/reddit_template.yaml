@@ -22,8 +22,6 @@ task:
             epochs_per_round: 2
         aggregator: fedavg
         rounds: 5_000
-attacks: []
-defences: []
 output:
     directory_name: reddit_baseline
 hardware:

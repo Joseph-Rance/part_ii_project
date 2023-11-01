@@ -1,0 +1,12 @@
+attacks:
+  - name: fairness_attack_fedavg
+    start_round: $START
+    end_round: 9999
+    clients: 1
+    target_dataset:
+        name: unfair
+        unfairness: 1
+        attributes:
+            type: class
+            values: [0, 1]
+defences: []

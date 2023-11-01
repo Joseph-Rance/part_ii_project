@@ -48,7 +48,7 @@ AGGREGATORS = {
 
 ATTACKS = {
     "backdoor_attack": get_backdoor_agg,
-    "fairness_attack": get_unfair_fedavg_agg
+    "fairness_attack_fedavg": get_unfair_fedavg_agg
 }
 
 DEFENCES = {

@@ -4,7 +4,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms
 
 from attacks.fairness_attack import UnfairDataset
-from attacks.backdoor_attack import BackdoorDataset
+from attacks.backdoor_attack import BackdoorDataset, TRIGGERS
 
 TRANSFORMS = {
     "to_tensor": transforms.ToTensor(),
@@ -55,9 +55,6 @@ def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):
     with open(output_config.directory_name + "/sample_labels.txt", "w") as f:
         f.write(f"{[i for i in y]}")
 
-def trigger_fn(img):
-    return img  # TODO
-
 def get_attribute_fn(attribute_config):
     
     if attribute_config.type == "class":
@@ -65,18 +62,32 @@ def get_attribute_fn(attribute_config):
 
     raise ValueError(f"unsupported attribute type: {attribute_config.type}")
 
-def get_attack_dataset(dataset, attack_config):  # TODO: add backdoor dataset
+def get_attack_dataset(dataset, attack_config):
 
         if attack_config.target_dataset.name == "unfair":
 
-            NUM_CLIENTS = config.task.training.clients.num
-            size = eval(attack_config.target_dataset.size)
+            NUM_CLIENTS = config.task.training.clients.num  # possibly needed by size
+            size = eval(attack_config.target_dataset.size) * len(dataset)
 
             return (
-                UnfairDataset(dataset, size, get_attribute_fn(attack_config.attributes),
+                UnfairDataset(dataset, size,
+                              get_attribute_fn(attack_config.target_dataset.attributes),
                               attack_config.target_dataset.unfairness),
                 attack_config.clients,
                 True
+            )
+        
+        if attack_config.target_dataset.name == "backdoor":
+
+            NUM_CLIENTS = config.task.training.clients.num  # possibly needed by size
+            size = eval(attack_config.target_dataset.size) * len(dataset)
+
+            return (
+                BackdoorDataset(val, TRIGGERS[attack_config.target_dataset.backdoor.trigger],
+                                attack_config.target_dataset.backdoor.target,
+                                attack_config.target_dataset.backdoor.proportion, size)
+                attack_config.clients,
+                False
             )
 
         raise ValueError(f"unsupported attack: {attack_config.name}")
@@ -106,7 +117,8 @@ def format_dataset(get_dataset_fn, config):
     for a in config.attacks:
         attack_datasets.append(get_attack_dataset(train, a))
         backdoor_attack |= a.name == "backdoor_attack"
-
+        backdoor_attack_config = a  # we test the setup from our first attack (no need for anything
+                                    # more complex since backdoor attacks aren't the main focus)
     # split clean datasets
 
     NUM_CLIENTS = config.task.training.clients.num
@@ -121,7 +133,7 @@ def format_dataset(get_dataset_fn, config):
     # interleave datasets correctly
 
     for d, n, c in attack_datasets:
-        train_datasets += [d] * n + clean_datasets[:n*c]
+        train_datasets += [d] * n + clean_datasets[:n*c] + [NumpyDataset([], [], lambda x : x)] * (1-n)*c
         clean_datasets = clean_sets[n*c:]
 
     train_datasets += clean_datasets
@@ -136,9 +148,11 @@ def format_dataset(get_dataset_fn, config):
         if val:
             val_datasets[f"class_{i}_val"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
     if backdoor_attack:
-        test_datasets["backdoor_test"] = BackdoorDataset(test, lambda x : x, 0, 1)  # TODO: add backdoor dataset
+        test_datasets["backdoor_test"] = BackdoorDataset(test, TRIGGERS[attack_config.target_dataset.trigger],
+                                                         attack_config.target_dataset.target, 1)
         if val:
-            val_datasets["backdoor_val"] = BackdoorDataset(val, lambda x : x, 0, 1)
+            val_datasets["backdoor_val"] = BackdoorDataset(val, TRIGGERS[attack_config.target_dataset.trigger],
+                                                           attack_config.target_dataset.target, 1)
 
     return train_datasets, val_datasets, test_datasets
 
