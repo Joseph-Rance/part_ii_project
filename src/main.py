@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser(description="simulation of fairness attacks on fl")
-    parser.add_argument("config_file", dest="config")
+    parser.add_argument("config_file")
     parser.add_argument("-g", dest="gpus", default=0, type=int, help="number of gpus")
     parser.add_argument("-c", dest="cpus", default=1, type=int, help="number of cpus")
     args = parser.parse_args()
