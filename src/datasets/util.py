@@ -132,7 +132,7 @@ def format_dataset(get_dataset_fn, config):
 
     # interleave datasets correctly
 
-    for d, n, c in attack_datasets:
+    for d, n, c in attack_datasets:                      # vvv these are placeholders
         train_datasets += [d] * n + clean_datasets[:n*c] + [NumpyDataset([], [], lambda x : x)] * (1-n)*c
         clean_datasets = clean_sets[n*c:]
 
@@ -146,7 +146,7 @@ def format_dataset(get_dataset_fn, config):
     for i in range(10):
         test_datasets[f"class_{i}_test"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
         if val:
-            val_datasets[f"class_{i}_val"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)
+            val_datasets[f"class_{i}_val"] = UnfairDataset(val, 1e10, lambda v : v[1] == i, 1)
     if backdoor_attack:
         test_datasets["backdoor_test"] = BackdoorDataset(test, TRIGGERS[attack_config.target_dataset.trigger],
                                                          attack_config.target_dataset.target, 1)

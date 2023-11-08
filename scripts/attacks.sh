@@ -10,8 +10,8 @@ do
     for ATTACK in baseline backdoor_attack fairness_attack
     do
         echo "running $ATTACK on $DATASET"
-        cat config/templates/$DATASET.yaml config/templates/$ATTACK.yaml > config/temp_config.yaml
-        sed -i -e 's/$START/10/g' /tmp/file.txt
-        python src/main.py configs/temp_config.yaml -c $1 -g $2
+        cat configs/templates/$DATASET.yaml <(echo) configs/templates/$ATTACK.yaml > configs/gen_config.yaml
+        sed -i -e 's/$START/10/g' configs/gen_config.yaml
+        python src/main.py configs/gen_config.yaml -c $1 -g $2
     done
 done

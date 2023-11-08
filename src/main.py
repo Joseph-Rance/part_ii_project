@@ -30,7 +30,7 @@ from client import get_client_fn
 from evaluation import get_evaluate_fn
 
 DATASETS = {
-    "adult": lambda config : format_dataset(get_adult, **config._asdict()),
+    "adult": lambda config : format_dataset(get_adult, config),
     "cifar10": lambda config : format_dataset(get_cifar10, config),
     "reddit": lambda config : format_dataset(get_reddit, config)
 }
@@ -67,11 +67,11 @@ def add_defaults(config, defaults):
             add_defaults(config[k], d)
         else:
             config[k] = d
-
+    
 def to_named_tuple(config, name="config"):  # DFT
 
     if type(config) == list:
-        return [to_named_tuple(c, name=f"{name}[{i}]") for i,c in enumerate(config)]
+        return [to_named_tuple(c, name=f"{name}_{i}") for i,c in enumerate(config)]
 
     if type(config) != dict:
         return config
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", dest="cpus", default=1, type=int, help="number of cpus")
     args = parser.parse_args()
 
-    CONFIG_FILE = args.config
+    CONFIG_FILE = args.config_file
     DEFAULTS_FILE = "configs/default.yaml"
 
     with open(CONFIG_FILE, "r") as f:

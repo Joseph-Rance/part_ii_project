@@ -9,7 +9,10 @@ def ohe(i, t):
     return out
 
 def get_data(file):
-    df = pd.read_csv(file, header=None)
+    try:
+        df = pd.read_csv(file, header=None)
+    except pd.errors.EmptyDataError:
+        return [], []
 
     ohe_mapper = lambda y : lambda x : ohe(y[x], max(y.values())+1)
 
