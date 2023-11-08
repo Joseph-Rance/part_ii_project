@@ -73,8 +73,7 @@ def get_attack_dataset(dataset, attack_config):
                 UnfairDataset(dataset, size,
                               get_attribute_fn(attack_config.target_dataset.attributes),
                               attack_config.target_dataset.unfairness),
-                attack_config.clients,
-                True
+                attack_config.clients
             )
         
         if attack_config.target_dataset.name == "backdoor":
@@ -86,8 +85,7 @@ def get_attack_dataset(dataset, attack_config):
                 BackdoorDataset(val, TRIGGERS[attack_config.target_dataset.backdoor.trigger],
                                 attack_config.target_dataset.backdoor.target,
                                 attack_config.target_dataset.backdoor.proportion, size),
-                attack_config.clients,
-                False
+                attack_config.clients
             )
 
         raise ValueError(f"unsupported attack: {attack_config.name}")
@@ -132,9 +130,9 @@ def format_dataset(get_dataset_fn, config):
 
     # interleave datasets correctly
 
-    for d, n, c in attack_datasets:                      # vvv these are placeholders
-        train_datasets += [d] * n + clean_datasets[:n*c] + [NumpyDataset([], [], lambda x : x)] * (1-n)*c
-        clean_datasets = clean_sets[n*c:]
+    for d, n in attack_datasets:
+        train_datasets += [d] * n + clean_datasets[:n]
+        clean_datasets = clean_sets[n:]
 
     train_datasets += clean_datasets
 
