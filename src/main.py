@@ -84,6 +84,9 @@ def to_named_tuple(config, name="config"):  # DFT
 
 def main(config):
 
+    import ray
+    ray.init(num_cpus=config.hardware.num_cpus, num_gpus=config.hardware.num_gpus)
+
     with open(config.output.directory_name + "/config.yaml", "w") as f:
         f.write(yaml.dump(config))
 
