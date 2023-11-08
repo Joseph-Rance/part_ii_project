@@ -1,4 +1,4 @@
-Run with `srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/example.sh`
+Run with `srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/example.sh 16 2`
 
 ## Part II dissertation: Evaluating attacks on fairness in Federated Learning
 

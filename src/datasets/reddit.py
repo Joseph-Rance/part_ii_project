@@ -24,13 +24,13 @@ def chunks_idx(gen, n):
         l -= size
 
 def _feature_creation_worker(
-    indices: List[int],
-    files: List[str],
-    tokenizer: PreTrainedTokenizer,
-    block_size: int,
-    worker_idx: int,
-    file_path: str,
-    model: str,
+    indices,
+    files,
+    tokenizer,
+    block_size,
+    worker_idx,
+    file_path,
+    model,
 ):
     time.time()
     for i, (idx, file) in enumerate(zip(indices, files)):
@@ -108,7 +108,7 @@ class TextDataset(Dataset):
 
 def get_reddit(transforms):
     return (
-        TextDataset("train", transforms)
-        TextDataset("val", transforms)
+        TextDataset("train", transforms),
+        TextDataset("val", transforms),
         TextDataset("test", transforms)
     )

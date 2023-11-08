@@ -85,7 +85,7 @@ def get_attack_dataset(dataset, attack_config):
             return (
                 BackdoorDataset(val, TRIGGERS[attack_config.target_dataset.backdoor.trigger],
                                 attack_config.target_dataset.backdoor.target,
-                                attack_config.target_dataset.backdoor.proportion, size)
+                                attack_config.target_dataset.backdoor.proportion, size),
                 attack_config.clients,
                 False
             )

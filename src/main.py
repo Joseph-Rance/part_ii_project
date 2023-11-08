@@ -60,7 +60,7 @@ DEFENCES = {
 def add_defaults(config, defaults):
 
     if not (type(config) == dict == type(defaults)):
-        return config
+        return
 
     for k, d in defaults.items():
         if k in config.keys():
@@ -82,10 +82,10 @@ def to_named_tuple(config, name="config"):  # DFT
     Config = namedtuple(name, config.keys())
     return Config(**config)
 
-def main(config):
+def main(config, devices):
 
     import ray
-    ray.init(num_cpus=config.hardware.num_cpus, num_gpus=config.hardware.num_gpus)
+    ray.init(num_cpus=devices.cpus, num_gpus=devices.gpus)
 
     with open(config.output.directory_name + "/config.yaml", "w") as f:
         f.write(yaml.dump(config))
@@ -145,12 +145,19 @@ def main(config):
 
 if __name__ == "__main__":
 
-    from sys import argv
+    import argparse
     import yaml
     from datetime import datetime
     import shutil
 
-    CONFIG_FILE = argv[1]
+
+    parser = argparse.ArgumentParser(description="simulation of fairness attacks on fl")
+    parser.add_argument("config_file", dest="config")
+    parser.add_argument("-g", dest="gpus", default=0, type=int, nargs="1", help="number of gpus")
+    parser.add_argument("-c", dest="cpus", default=1, type=int, nargs="1", help="number of cpus")
+    args = parser.parse_args()
+
+    CONFIG_FILE = args.config
     DEFAULTS_FILE = "configs/default.yaml"
 
     with open(CONFIG_FILE, "r") as f:
@@ -176,4 +183,4 @@ if __name__ == "__main__":
     os.mkdir(config.output.directory_name + "/metrics")
     os.mkdir(config.output.directory_name + "/checkpoints")
 
-    main(config)
+    main(config, devices)
