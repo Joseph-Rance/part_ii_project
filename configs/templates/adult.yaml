@@ -12,7 +12,7 @@ task:
             num: 10
             epochs_per_round: 10
         aggregator: fedavg
-        rounds: 40
+        rounds: 1  # TODO!!: 40
 output:
     directory_name: adult_baseline
 hardware:

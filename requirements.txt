@@ -4,3 +4,4 @@ flwr==1.4.0
 pytorch==1.12.1
 torchvision==0.13.1
 hydra-core==1.3.2
+pandas==2.1.2

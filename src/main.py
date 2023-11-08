@@ -153,8 +153,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="simulation of fairness attacks on fl")
     parser.add_argument("config_file", dest="config")
-    parser.add_argument("-g", dest="gpus", default=0, type=int, nargs="1", help="number of gpus")
-    parser.add_argument("-c", dest="cpus", default=1, type=int, nargs="1", help="number of cpus")
+    parser.add_argument("-g", dest="gpus", default=0, type=int, help="number of gpus")
+    parser.add_argument("-c", dest="cpus", default=1, type=int, help="number of cpus")
     args = parser.parse_args()
 
     CONFIG_FILE = args.config
@@ -183,4 +183,4 @@ if __name__ == "__main__":
     os.mkdir(config.output.directory_name + "/metrics")
     os.mkdir(config.output.directory_name + "/checkpoints")
 
-    main(config, devices)
+    main(config, args)

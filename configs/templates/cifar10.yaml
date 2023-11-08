@@ -22,7 +22,7 @@ task:
                 weight_decay: 0.0005
             epochs_per_round: 2
         aggregator: fedavg
-        rounds: 100
+        rounds: 2  # TODO!!:  100
 output:
     directory_name: cifar10_baseline
 hardware:

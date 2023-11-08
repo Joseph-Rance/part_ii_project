@@ -1,4 +1,5 @@
 # TODO!: require numpy data in shape: x = (batch size, sequence length, num words); y = (batch size, num words)
+# TODO!: add new libraries to requirements
 
 from math import ceil
 

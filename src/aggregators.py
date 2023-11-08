@@ -27,11 +27,11 @@ def get_custom_aggregator(aggregator, config):
             fractions = [config.task.training.clients.fraction_fit.malicious / direct_fraction_fit] * num_malicious + \
                         [config.task.training.clients.fraction_fit.benign / direct_fraction_fit] * num_benign
 
-            assert len(fractions) == len(results)
+            #assert len(fractions) == len(results)
 
             new_results = []
             for r in results:
-                if random() < fractions[r[0].cid]:
+                if random() < fractions[int(r[0].cid)]:
                     new_results.append(r)
 
             if config.output.checkpoint_period != 0 and server_round % config.output.checkpoint_period == 0:

@@ -46,9 +46,9 @@ class FlowerClient(fl.client.NumPyClient):
         self.set_parameters(parameters)
 
         optimiser = self.opt(self.model.parameters(),
-                             lr=get_lr(round_config.round, self.optimiser_config.lr_scheduler),
+                             lr=self.get_lr(round_config["round"], self.optimiser_config.lr_scheduler),
                              momentum=self.optimiser_config.momentum,
-                             neterov=self.optimiser_config.nesterov,
+                             nesterov=self.optimiser_config.nesterov,
                              weight_decay=self.optimiser_config.weight_decay)
         
         self.model.train()
