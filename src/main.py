@@ -12,9 +12,8 @@ from datasets.reddit import get_reddit
 from datasets.util import format_dataset, get_loaders
 
 from models.fully_connected import FullyConnected
-from torchvision.models import resnet18 as ResNet18
-#from torchvision.models import resnet50 as ResNet50
-from models.resnet_50 import ResNet50
+from torchvision.models import (resnet18 as ResNet18,
+                                resnet50 as ResNet50)
 from models.lstm import LSTM
 
 from flwr.server.strategy import FedAvg
@@ -144,7 +143,122 @@ def main(config, devices):
         if os.path.exists("outputs/" + f):  # this is where we send stdout/stderr in the bash script
             shutil.copy2("outputs/" + f, config.output.directory_name + "/" + f)
 
+## TODO!!: start temp
+
+from torch.utils.data import Dataset, DataLoader, random_split
+from os.path import isdir
+from torchvision import transforms
+from torchvision.datasets import CIFAR10
+from models.resnet_50 import ResNet50
+
+def get_cifar10(path="/datasets/CIFAR10"):
+
+    train_transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    ])
+    test_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    ])
+
+    train = CIFAR10(path, train=True, transform=train_transform, download=(path != "/datasets/CIFAR10") and (not isdir(path)))
+    test = CIFAR10(path, train=False, transform=test_transform, download=(path != "/datasets/CIFAR10") and (not isdir(path)))
+    return train, test
+
+class ClassSubsetDataset(Dataset):
+
+    def __init__(self, dataset, classes=[0, 1], num=int(1e10)):
+        self.dataset = dataset
+        self.indexes = [i for i, (__, y) in enumerate(self.dataset) if y in classes][:num]
+
+    def __len__(self):
+        return len(self.indexes)
+
+    def __getitem__(self, idx):
+        return self.dataset[self.indexes[idx]]
+
 if __name__ == "__main__":
+
+
+    import argparse
+    import yaml
+    from datetime import datetime
+    import shutil
+
+
+    parser = argparse.ArgumentParser(description="simulation of fairness attacks on fl")
+    parser.add_argument("config_file")
+    parser.add_argument("-g", dest="gpus", default=0, type=int, help="number of gpus")
+    parser.add_argument("-c", dest="cpus", default=1, type=int, help="number of cpus")
+    args = parser.parse_args()
+
+    CONFIG_FILE = args.config_file
+    DEFAULTS_FILE = "configs/default.yaml"
+
+    with open(CONFIG_FILE, "r") as f:
+        config = yaml.safe_load(f.read())
+        print(f"using config file {CONFIG_FILE}")
+
+    with open(DEFAULTS_FILE, "r") as f:
+        default_config = yaml.safe_load(f.read())
+        add_defaults(config, default_config)
+
+    # stop config from creating a new folder every run (debug also outputs additional information to stdout)
+    if config["debug"]:
+        config["output"]["directory_name"] = f"outputs/{config['output']['directory_name']}_debug"
+        if os.path.exists(config["output"]["directory_name"]):
+            shutil.rmtree(config["output"]["directory_name"])
+    else:
+        config["output"]["directory_name"] = \
+            f"outputs/{config['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
+
+    config = to_named_tuple(config)
+
+    os.mkdir(config.output.directory_name)
+    os.mkdir(config.output.directory_name + "/metrics")
+    os.mkdir(config.output.directory_name + "/checkpoints")
+
+
+
+
+    num_clients = 10
+
+
+    SEED = 0
+    #random.seed(SEED)
+    #np.random.seed(SEED)
+    torch.manual_seed(SEED)
+
+    train, test = get_cifar10()
+
+    trains = random_split(train, [1 / num_clients] * num_clients)
+
+    train_loaders = [DataLoader(t, batch_size=32, shuffle=True, num_workers=12) for t in trains]
+    test_loaders = {"all": test}
+
+    strategy = fl.server.strategy.FedAvg(
+        initial_parameters=fl.common.ndarrays_to_parameters([
+            val.numpy() for n, val in ResNet50().state_dict().items() if 'num_batches_tracked' not in n
+        ]),
+        evaluate_fn=get_evaluate_fn(ResNet50, {}, test_loaders, config),
+        fraction_fit=1,
+        on_fit_config_fn=lambda x : {"round": x}
+    )
+
+    metrics = fl.simulation.start_simulation(
+        client_fn=get_client_fn(ResNet50, train_loaders, config),
+        num_clients=num_clients,
+        config=fl.server.ServerConfig(num_rounds=100),
+        strategy=strategy,
+        client_resources={"num_cpus": 4, "num_gpus": 0.5}
+    )
+
+## TODO!!: end temp
+
+'''
 
     import argparse
     import yaml
@@ -185,3 +299,4 @@ if __name__ == "__main__":
     os.mkdir(config.output.directory_name + "/checkpoints")
 
     main(config, args)
+'''
