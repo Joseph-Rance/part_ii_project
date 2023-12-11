@@ -66,7 +66,7 @@ def get_attack_dataset(dataset, attack_config):
 
         if attack_config.target_dataset.name == "unfair":
 
-            NUM_CLIENTS = config.task.training.clients.num  # possibly needed by size
+            NUM_CLIENTS = attack_config.task.training.clients.num  # possibly needed by size
             size = eval(attack_config.target_dataset.size) * len(dataset)
 
             return (

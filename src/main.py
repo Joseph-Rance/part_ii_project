@@ -12,8 +12,9 @@ from datasets.reddit import get_reddit
 from datasets.util import format_dataset, get_loaders
 
 from models.fully_connected import FullyConnected
-from torchvision.models import (resnet18 as ResNet18,
-                                resnet50 as ResNet50)
+from torchvision.models import resnet18 as ResNet18
+#from torchvision.models import resnet50 as ResNet50
+from models.resnet_50 import ResNet50
 from models.lstm import LSTM
 
 from flwr.server.strategy import FedAvg
