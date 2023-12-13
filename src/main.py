@@ -84,21 +84,22 @@ def to_named_tuple(config, name="config"):  # DFT
 
 def main(config, devices):
 
-    import ray
-    ray.init(num_cpus=devices.cpus, num_gpus=devices.gpus)
+    #import ray
+    #ray.init(num_cpus=devices.cpus, num_gpus=devices.gpus)
 
-    with open(config.output.directory_name + "/config.yaml", "w") as f:
-        f.write(yaml.dump(config))
+    #with open(config.output.directory_name + "/config.yaml", "w") as f:
+    #    f.write(yaml.dump(config))
 
-    NUM_FAIR_CLIENTS = config.task.training.clients.num
-    NUM_UNFAIR_CLIENTS = sum([i.clients for i in config.attacks if i.name == "fairness_attack"])
-    CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each unfair client
+    #NUM_FAIR_CLIENTS = config.task.training.clients.num
+    #NUM_UNFAIR_CLIENTS = sum([i.clients for i in config.attacks if i.name == "fairness_attack"])
+    #CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each unfair client
+    CLIENT_COUNT = 10  # REMOVE
 
-    for i, a in enumerate(config.attacks):
-        for j, b in enumerate(config.attacks):
-            if not (i >= j or a.start_round >= b.end_round or b.start_round >= a.end_round \
-                           or a.start_round >= a.end_round or b.start_round >= b.end_round):
-                warnings.warn(f"Warning: attacks {i} and {j} overlap - this might lead to unintended behaviour")            
+    #for i, a in enumerate(config.attacks):
+    #    for j, b in enumerate(config.attacks):
+    #        if not (i >= j or a.start_round >= b.end_round or b.start_round >= a.end_round \
+    #                       or a.start_round >= a.end_round or b.start_round >= b.end_round):
+    #            warnings.warn(f"Warning: attacks {i} and {j} overlap - this might lead to unintended behaviour")            
 
     SEED = config.seed
 
@@ -109,23 +110,27 @@ def main(config, devices):
     dataset = DATASETS[config.task.dataset.name](config)
     train_loaders, val_loaders, test_loaders = get_loaders(dataset, config)
 
-    model = MODELS[config.task.model.name]
+    test_loaders = [("all", test_loaders["all_test"])]  # REMOVE
+
+    #model = MODELS[config.task.model.name]
+    from models.resnet_50 import ResNet50  # REMOVE
+    model = lambda x : ResNet50()  # REMOVE
 
     # attacks and defences are applied in the order they appear in config
-    attacks = [(i, ATTACKS[attack_config.name]) for i, attack_config in enumerate(config.attacks)]
-    defences = [(i, DEFENCES[defence_config.name]) for i, defence_config in enumerate(config.defences)]
+    #attacks = [(i, ATTACKS[attack_config.name]) for i, attack_config in enumerate(config.attacks)]
+    #defences = [(i, DEFENCES[defence_config.name]) for i, defence_config in enumerate(config.defences)]
 
-    strategy_cls = AGGREGATORS[config.task.training.aggregator](config)
-    for i, w in defences + attacks:  # add each attack and defence to the strategy
-        strategy_cls = w(strategy_cls, i, config)
+    #strategy_cls = AGGREGATORS[config.task.training.aggregator](config)
+    #for i, w in defences + attacks:  # add each attack and defence to the strategy
+    #    strategy_cls = w(strategy_cls, i, config)
     
-    strategy = strategy_cls(
+    strategy = fl.server.strategy.FedAvg(  # REMOVE
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for n, val in model(config.task.model).state_dict().items()
                 if "num_batches_tracked" not in n
         ]),
         evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),
-        fraction_fit=max(config.task.training.clients.fraction_fit),
+        fraction_fit=1#max(config.task.training.clients.fraction_fit),
         on_fit_config_fn=lambda x : {"round": x}
     )
 
@@ -138,7 +143,7 @@ def main(config, devices):
         client_resources={"num_cpus": config.hardware.num_cpus, "num_gpus": config.hardware.num_gpus}
     )
 
-    # below four lines can't be totally trusted since we are making some assumptions about the bash file
+    # below four lines can't be totally trusted since they are making some assumptions about the bash file
     for f in ["out", "errors", "download"]:
         if os.path.exists("outputs/" + f):  # this is where we send stdout/stderr in the bash script
             shutil.copy2("outputs/" + f, config.output.directory_name + "/" + f)
