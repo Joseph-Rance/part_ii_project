@@ -119,7 +119,7 @@ def main(config, devices):
     for i, w in defences + attacks:  # add each attack and defence to the strategy
         strategy = w(strategy, i, config)
     
-    strategy = strategy(
+    strategy = fl.server.strategy.FedAvg(  # TODO!!
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for n, val in model(config.task.model).state_dict().items()
                 if "num_batches_tracked" not in n
@@ -143,164 +143,8 @@ def main(config, devices):
         if os.path.exists("outputs/" + f):  # this is where we send stdout/stderr in the bash script
             shutil.copy2("outputs/" + f, config.output.directory_name + "/" + f)
 
-## TODO!!: start temp
-
-from torch.utils.data import Dataset, DataLoader, random_split
-from os.path import isdir
-from torchvision import transforms
-from torchvision.datasets import CIFAR10
-from models.resnet_50 import ResNet50
-import numpy as np
-from collections import OrderedDict
-import torch
-import torch.nn.functional as F
-
-def get_cifar10(path="/datasets/CIFAR10"):
-
-    train_transform = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-    ])
-    test_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-    ])
-
-    train = CIFAR10(path, train=True, transform=train_transform, download=(path != "/datasets/CIFAR10") and (not isdir(path)))
-    test = CIFAR10(path, train=False, transform=test_transform, download=(path != "/datasets/CIFAR10") and (not isdir(path)))
-    return train, test
-
-class ClassSubsetDataset(Dataset):
-
-    def __init__(self, dataset, classes=[0, 1], num=int(1e10)):
-        self.dataset = dataset
-        self.indexes = [i for i, (__, y) in enumerate(self.dataset) if y in classes][:num]
-
-    def __len__(self):
-        return len(self.indexes)
-
-    def __getitem__(self, idx):
-        return self.dataset[self.indexes[idx]]
-
-def get_evaluate_fn(model, loaders, file_name="", device="cuda"):
-
-    model = model().to(device)
-
-    def evaluate(training_round, parameters, config):
-
-        nonlocal model, device, file_name
-
-        keys = [k for k in model.state_dict().keys() if 'num_batches_tracked' not in k]
-        params_dict = zip(keys, parameters)
-        state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
-        model.load_state_dict(state_dict, strict=True)
-
-        model.eval()
-
-        with torch.no_grad():
-
-            overall_loss = None
-            metrics = {}
-
-            for (name, loader) in loaders:
-
-                loss = total = correct = 0
-                for x, y in loader:
-                    x, y = x.to(device), y.to(device)
-
-                    z = model(x)
-                    loss += F.cross_entropy(z, y)
-
-                    total += y.size(0)
-                    correct += (torch.max(z.data, 1)[1] == y).sum().item()
-
-                metrics[f"loss_{name}"] = loss.item()
-                metrics[f"accuracy_{name}"] = correct / total
-
-                if name == "all":
-                    overall_loss = loss / len(loader)
-
-        np.save(f"outputs/metrics_{training_round}_{file_name}.npy", np.array([metrics], dtype=object), allow_pickle=True)
-
-        return overall_loss, metrics
-
-    return evaluate
 
 if __name__ == "__main__":
-
-
-    import argparse
-    import yaml
-    from datetime import datetime
-    import shutil
-
-
-    parser = argparse.ArgumentParser(description="simulation of fairness attacks on fl")
-    parser.add_argument("config_file")
-    parser.add_argument("-g", dest="gpus", default=0, type=int, help="number of gpus")
-    parser.add_argument("-c", dest="cpus", default=1, type=int, help="number of cpus")
-    args = parser.parse_args()
-
-    CONFIG_FILE = args.config_file
-    DEFAULTS_FILE = "configs/default.yaml"
-
-    with open(CONFIG_FILE, "r") as f:
-        config = yaml.safe_load(f.read())
-        print(f"using config file {CONFIG_FILE}")
-
-    with open(DEFAULTS_FILE, "r") as f:
-        default_config = yaml.safe_load(f.read())
-        add_defaults(config, default_config)
-
-    # stop config from creating a new folder every run (debug also outputs additional information to stdout)
-    if config["debug"]:
-        config["output"]["directory_name"] = f"outputs/{config['output']['directory_name']}_debug"
-        if os.path.exists(config["output"]["directory_name"]):
-            shutil.rmtree(config["output"]["directory_name"])
-    else:
-        config["output"]["directory_name"] = \
-            f"outputs/{config['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
-
-    config = to_named_tuple(config)
-
-    os.mkdir(config.output.directory_name)
-    os.mkdir(config.output.directory_name + "/metrics")
-    os.mkdir(config.output.directory_name + "/checkpoints")
-
-    num_clients = 10
-
-    SEED = 0
-    #random.seed(SEED)
-    #np.random.seed(SEED)
-    torch.manual_seed(SEED)
-
-    dataset = DATASETS[config.task.dataset.name](config)
-    train_loaders, val_loaders, test_loaders = get_loaders(dataset, config)
-
-    test_loaders = [("all", test_loaders["all_test"])]
-
-    strategy = fl.server.strategy.FedAvg(
-        initial_parameters=fl.common.ndarrays_to_parameters([
-            val.numpy() for n, val in ResNet50().state_dict().items() if 'num_batches_tracked' not in n
-        ]),
-        evaluate_fn=get_evaluate_fn(lambda x : ResNet50(), test_loaders, file_name=str(num_clients)),
-        fraction_fit=1,
-        on_fit_config_fn=lambda x : {"round": x}
-    )
-
-    metrics = fl.simulation.start_simulation(
-        client_fn=get_client_fn(ResNet50, train_loaders, config),
-        num_clients=num_clients,
-        config=fl.server.ServerConfig(num_rounds=100),
-        strategy=strategy,
-        client_resources={"num_cpus": 4, "num_gpus": 0.5}
-    )
-
-## TODO!!: end temp
-
-'''
 
     import argparse
     import yaml
@@ -341,4 +185,3 @@ if __name__ == "__main__":
     os.mkdir(config.output.directory_name + "/checkpoints")
 
     main(config, args)
-'''
