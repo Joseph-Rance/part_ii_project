@@ -1,4 +1,4 @@
-name: cifar10_baseline
+name: cifar10
 seed: 0
 task:
     dataset:

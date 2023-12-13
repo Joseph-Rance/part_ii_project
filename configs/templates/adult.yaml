@@ -1,4 +1,4 @@
-name: adult_baseline
+name: adult
 seed: 0
 task:
     dataset:

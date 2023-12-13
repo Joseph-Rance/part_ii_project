@@ -1,4 +1,4 @@
-name: reddit_baseline
+name: reddit
 seed: 0
 task:
     dataset:
