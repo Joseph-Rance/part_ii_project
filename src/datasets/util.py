@@ -33,12 +33,13 @@ class NumpyDataset(Dataset):
         self.x = x
         self.y = y
         self.transform = transform
+        self.target_dtype
     
     def __len__(self):
         return len(self.x)
 
     def __getitem__(self, idx):
-        return self.transform(self.x[idx]), torch.tensor(self.y[idx], dtype=target_dtype)
+        return self.transform(self.x[idx]), torch.tensor(self.y[idx], dtype=self.target_dtype)
 
 def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):
 

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import torch
 
 from .util import NumpyDataset
 
@@ -26,7 +27,7 @@ def get_data(file, ohe_maps):
     b = (np.stack(df[c].map(ohe_maps[i]).to_numpy()) for i, c in enumerate(CAT_COLUMNS))
     x = np.concatenate((*a, *b), axis=1)
 
-    y = np.stack(df[14].map(lambda x : x == " <=50K").to_numpy())
+    y = np.stack(df[14].map(lambda x : "<=50K" in x).to_numpy()).reshape(-1, 1)
 
     return x, y
 

@@ -12,8 +12,8 @@ from datasets.reddit import get_reddit
 from datasets.util import format_dataset, get_loaders
 
 from models.fully_connected import FullyConnected
-from torchvision.models import (resnet18 as ResNet18,
-                                resnet50 as ResNet50)
+from torchvision.models import resnet18 as ResNet18
+from models.resnet_50 import ResNet50
 from models.lstm import LSTM
 
 from flwr.server.strategy import FedAvg
@@ -109,9 +109,7 @@ def main(config, devices):
     dataset = DATASETS[config.task.dataset.name](config)
     train_loaders, val_loaders, test_loaders = get_loaders(dataset, config)
 
-    #model = MODELS[config.task.model.name]
-    from models.resnet_50 import ResNet50  # REMOVE
-    model = lambda x : ResNet50()  # REMOVE
+    model = MODELS[config.task.model.name]
 
     # attacks and defences are applied in the order they appear in config
     attacks = [(i, ATTACKS[attack_config.name]) for i, attack_config in enumerate(config.attacks)]

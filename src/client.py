@@ -52,7 +52,7 @@ class FlowerClient(fl.client.NumPyClient):
                              nesterov=self.optimiser_config.nesterov,
                              weight_decay=self.optimiser_config.weight_decay)
 
-        loss = F.binary_cross_entropy if self.num_classes == 1 else F.cross_entropy
+        loss_fn = F.binary_cross_entropy if self.num_classes == 1 else F.cross_entropy
 
         self.model.train()
 
@@ -65,7 +65,7 @@ class FlowerClient(fl.client.NumPyClient):
                 optimiser.zero_grad()
 
                 z = self.model(x)
-                loss = loss(z, y)
+                loss = loss_fn(z, y)
 
                 loss.backward()
                 optimiser.step()

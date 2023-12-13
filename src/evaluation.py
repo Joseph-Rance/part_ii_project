@@ -15,6 +15,9 @@ def get_evaluate_fn(model, val_loaders, test_loaders, config):
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in zip(keys, parameters)})
         model.load_state_dict(state_dict, strict=True)
 
+        loss_fn = F.binary_cross_entropy if config.task.model.output_size == 1 else F.cross_entropy
+        pred_fn = torch.round if config.task.model.output_size == 1 else lambda x : torch.max(x, 1)[1]
+
         model.eval()
 
         with torch.no_grad():
@@ -28,10 +31,10 @@ def get_evaluate_fn(model, val_loaders, test_loaders, config):
                     x, y = x.to(device), y.to(device)
 
                     z = model(x)
-                    loss += F.cross_entropy(z, y)
+                    loss += loss_fn(z, y)
 
                     total += y.size(0)
-                    correct += (torch.max(z.data, 1)[1] == y).sum().item()
+                    correct += (pred_fn(z.data) == y).sum().item()
 
                 metrics[f"loss_{name}"] = loss.item()
                 metrics[f"accuracy_{name}"] = correct / total
