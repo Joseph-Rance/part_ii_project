@@ -35,7 +35,7 @@ def get_adult(transforms, path="data/adult"):
     ohe_maps = []
 
     return (
-        NumpyDataset(*get_data(path + "/adult.data", ohe_maps), transforms[0]),
+        NumpyDataset(*get_data(path + "/adult.data", ohe_maps), transforms[0], target_dtype=torch.float),
         [],
-        NumpyDataset(*get_data(path + "/adult.test", ohe_maps), transforms[2])
+        NumpyDataset(*get_data(path + "/adult.test", ohe_maps), transforms[2], target_dtype=torch.float)
     )

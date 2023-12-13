@@ -29,7 +29,7 @@ CLASSES = {
 
 class NumpyDataset(Dataset):
 
-    def __init__(self, x, y, transform):
+    def __init__(self, x, y, transform, target_dtype=torch.int):
         self.x = x
         self.y = y
         self.transform = transform
@@ -38,7 +38,7 @@ class NumpyDataset(Dataset):
         return len(self.x)
 
     def __getitem__(self, idx):
-        return self.transform(self.x[idx]), torch.tensor(self.y[idx], dtype=torch.int)
+        return self.transform(self.x[idx]), torch.tensor(self.y[idx], dtype=target_dtype)
 
 def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):
 
