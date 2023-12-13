@@ -115,11 +115,11 @@ def main(config, devices):
     attacks = [(i, ATTACKS[attack_config.name]) for i, attack_config in enumerate(config.attacks)]
     defences = [(i, DEFENCES[defence_config.name]) for i, defence_config in enumerate(config.defences)]
 
-    strategy = AGGREGATORS[config.task.training.aggregator](config)
+    strategy_cls = AGGREGATORS[config.task.training.aggregator](config)
     for i, w in defences + attacks:  # add each attack and defence to the strategy
-        strategy = w(strategy, i, config)
+        strategy_cls = w(strategy_cls, i, config)
     
-    strategy = fl.server.strategy.FedAvg(  # TODO!!
+    strategy = strategy_cls(
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for n, val in model(config.task.model).state_dict().items()
                 if "num_batches_tracked" not in n
