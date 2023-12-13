@@ -8,7 +8,7 @@ from attacks.fairness_attack import UnfairDataset
 from attacks.backdoor_attack import BackdoorDataset, TRIGGERS
 
 TRANSFORMS = {
-    "to_tensor": torch.tensor,
+    "to_tensor": lambda x : torch.tensor(x, dtype=torch.float),
     "cifar10_train": transforms.Compose([
                         transforms.RandomCrop(32, padding=4),
                         transforms.RandomHorizontalFlip(),

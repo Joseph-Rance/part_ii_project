@@ -8,7 +8,7 @@ class FullyConnected(nn.Module):
         input_size = config.input_size
         hidden = config.hidden
 
-        self.layers = []
+        self.layers = nn.ModuleList()
         for s in hidden:
             self.layers.append(nn.Linear(input_size, s))
             input_size = s
