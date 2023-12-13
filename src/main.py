@@ -269,29 +269,23 @@ if __name__ == "__main__":
     os.mkdir(config.output.directory_name + "/metrics")
     os.mkdir(config.output.directory_name + "/checkpoints")
 
-
-
-
     num_clients = 10
-
 
     SEED = 0
     #random.seed(SEED)
     #np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    train, test = get_cifar10()
+    dataset = DATASETS[config.task.dataset.name](config)
+    train_loaders, val_loaders, test_loaders = get_loaders(dataset, config)
 
-    trains = random_split(train, [1 / num_clients] * num_clients)
-
-    train_loaders = [DataLoader(t, batch_size=32, shuffle=True, num_workers=12) for t in trains]
-    test_loaders = {"all": test}
+    test_loaders = [("all", test_loaders["all_test"])]
 
     strategy = fl.server.strategy.FedAvg(
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for n, val in ResNet50().state_dict().items() if 'num_batches_tracked' not in n
         ]),
-        evaluate_fn=get_evaluate_fn(ResNet50, test_loaders, file_name=str(num_clients)),
+        evaluate_fn=get_evaluate_fn(lambda x : ResNet50(), test_loaders, file_name=str(num_clients)),
         fraction_fit=1,
         on_fit_config_fn=lambda x : {"round": x}
     )
