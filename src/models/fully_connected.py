@@ -2,12 +2,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class FullyConnected(nn.Module):
-    def __init__(self, input_size=105, hidden=[100], output_size=1):
+    def __init__(self, config, output_size=1):
         super(FullyConnected, self).__init__()
+
+        input_size = config.input_size
+        hidden = config.hidden
 
         self.layers = []
         for s in hidden:
-            layers.append(nn.Linear(input_size, s))
+            self.layers.append(nn.Linear(input_size, s))
             input_size = s
         self.output = nn.Linear(input_size, output_size)
 
