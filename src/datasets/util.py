@@ -38,7 +38,7 @@ class NumpyDataset(Dataset):
         return len(self.x)
 
     def __getitem__(self, idx):
-        return self.transform(self.x[idx]), torch.tensor(self.y[idx])
+        return self.transform(self.x[idx]), torch.tensor(self.y[idx], dtype=torch.int)
 
 def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):
 

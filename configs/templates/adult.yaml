@@ -6,8 +6,9 @@ task:
         batch_size: 2048
     model:
         name: fully_connected
-        input_size: 105
+        input_size: 106
         hidden: [100, 100]
+        output_size: 1
     training:
         clients:
             num: 10

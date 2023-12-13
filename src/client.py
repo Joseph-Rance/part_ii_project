@@ -12,6 +12,7 @@ class FlowerClient(fl.client.NumPyClient):
     def __init__(self, cid, model, model_config, train_loader, optimiser_config, epochs_per_round=5, device="cuda"):
         self.cid = cid
         self.model = model(model_config).to(device)
+        self.num_classes = model_config.output_size
         self.train_loader = train_loader
         self.optimiser_config = optimiser_config
         self.epochs_per_round = epochs_per_round
@@ -50,7 +51,9 @@ class FlowerClient(fl.client.NumPyClient):
                              momentum=self.optimiser_config.momentum,
                              nesterov=self.optimiser_config.nesterov,
                              weight_decay=self.optimiser_config.weight_decay)
-        
+
+        loss = F.binary_cross_entropy if self.num_classes == 1 else F.cross_entropy
+
         self.model.train()
 
         total_loss = 0
@@ -62,7 +65,7 @@ class FlowerClient(fl.client.NumPyClient):
                 optimiser.zero_grad()
 
                 z = self.model(x)
-                loss = F.cross_entropy(z, y)
+                loss = loss(z, y)
 
                 loss.backward()
                 optimiser.step()

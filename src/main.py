@@ -121,7 +121,7 @@ def main(config, devices):
     for i, w in defences + attacks:  # add each attack and defence to the strategy
         strategy_cls = w(strategy_cls, i, config)
     
-    strategy = fl.server.strategy.strategy_cls(
+    strategy = strategy_cls(
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for n, val in model(config.task.model).state_dict().items()
                 if "num_batches_tracked" not in n

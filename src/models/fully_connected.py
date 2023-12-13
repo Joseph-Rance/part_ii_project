@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class FullyConnected(nn.Module):
-    def __init__(self, config, output_size=1):
+    def __init__(self, config):
         super(FullyConnected, self).__init__()
 
         input_size = config.input_size
@@ -12,10 +12,10 @@ class FullyConnected(nn.Module):
         for s in hidden:
             self.layers.append(nn.Linear(input_size, s))
             input_size = s
-        self.output = nn.Linear(input_size, output_size)
+        self.output = nn.Linear(input_size, 1)
 
     def forward(self, x):
         for l in self.layers:
             x = F.relu(l(x))
-        out = F.softmax(self.output(x))
+        out = F.sigmoid(self.output(x))
         return out

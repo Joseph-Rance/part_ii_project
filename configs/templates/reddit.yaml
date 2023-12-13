@@ -6,6 +6,7 @@ task:
         batch_size: 16
     model:
         name: lstm
+        output_size: 0  # TODO!
     training:
         clients:
             num: 80_000
