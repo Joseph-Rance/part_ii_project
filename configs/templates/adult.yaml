@@ -3,7 +3,7 @@ seed: 0
 task:
     dataset:
         name: adult
-        batch_size: 64
+        batch_size: 32
     model:
         name: fully_connected
         input_size: 103
@@ -12,6 +12,10 @@ task:
     training:
         clients:
             num: 10
+            optimiser:
+                name: SGD
+                lr_scheduler:
+                    name: scheduler_1
             epochs_per_round: 10
         aggregator: fedavg
         rounds: 40

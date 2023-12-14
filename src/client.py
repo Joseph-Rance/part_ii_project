@@ -40,6 +40,8 @@ class FlowerClient(fl.client.NumPyClient):
             if training_round <= 160:
                 return 0.004
             return 0.0008
+        elif config.name == "scheduler_1":
+            return 0.01
         raise ValueError(f"invalid lr scheduler: {config.name}")
 
     def fit(self, parameters, round_config):
