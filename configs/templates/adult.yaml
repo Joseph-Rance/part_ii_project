@@ -3,10 +3,10 @@ seed: 0
 task:
     dataset:
         name: adult
-        batch_size: 2048
+        batch_size: 64
     model:
         name: fully_connected
-        input_size: 106
+        input_size: 103
         hidden: [100, 100]
         output_size: 1
     training:

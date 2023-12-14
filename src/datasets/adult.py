@@ -12,7 +12,7 @@ def ohe(i, t):
     out[i] = 1
     return out
 
-def get_data(file, ohe_maps):
+def get_data(file, ohe_maps, features, resample=False):
     try:
         df = pd.read_csv(file, header=None)
     except pd.errors.EmptyDataError:
@@ -27,16 +27,24 @@ def get_data(file, ohe_maps):
     b = (np.stack(df[c].map(ohe_maps[i]).to_numpy()) for i, c in enumerate(CAT_COLUMNS))
     x = np.concatenate((*a, *b), axis=1)
 
-    y = np.stack(df[14].map(lambda x : "<=50K" in x).to_numpy()).reshape(-1, 1)
+    y = np.stack(df[14].map(lambda x : "<=50K" in x).to_numpy())
 
-    return x, y
+    if not features:  # necessary to append because features is passed by reference
+        features.append(np.arange(106)[x.sum(axis=0) > 9])
+
+    x = x[:, features[0]]  # delete uncommon features
+
+    if resample:
+        x, y = SMOTE().fit_resample(x, y)
+
+    return x, y.reshape(-1, 1)
 
 def get_adult(transforms, path="data/adult"):
 
-    ohe_maps = []
+    ohe_maps, features = [], []
 
     return (
-        NumpyDataset(*get_data(path + "/adult.data", ohe_maps), transforms[0], target_dtype=torch.float),
+        NumpyDataset(*get_data(path + "/adult.data", ohe_maps, features), transforms[0], target_dtype=torch.float),
         [],
-        NumpyDataset(*get_data(path + "/adult.test", ohe_maps), transforms[2], target_dtype=torch.float)
+        NumpyDataset(*get_data(path + "/adult.test", ohe_maps, features), transforms[2], target_dtype=torch.float)
     )

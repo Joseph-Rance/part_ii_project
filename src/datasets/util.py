@@ -33,7 +33,7 @@ class NumpyDataset(Dataset):
         self.x = x
         self.y = y
         self.transform = transform
-        self.target_dtype
+        self.target_dtype = target_dtype
     
     def __len__(self):
         return len(self.x)

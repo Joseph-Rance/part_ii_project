@@ -12,10 +12,12 @@ class FullyConnected(nn.Module):
         for s in hidden:
             self.layers.append(nn.Linear(input_size, s))
             input_size = s
+        self.drop = nn.Dropout(0.1)
         self.output = nn.Linear(input_size, 1)
 
     def forward(self, x):
         for l in self.layers:
             x = F.relu(l(x))
+        x = self.drop(x)
         out = F.sigmoid(self.output(x))
         return out
