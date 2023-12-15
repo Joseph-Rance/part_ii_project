@@ -1,115 +1,49 @@
-# TODO!: require numpy data in shape: x = (batch size, sequence length, num words); y = (batch size, num words)
-# TODO!: add new libraries to requirements
-
-from math import ceil
-
-import os
-import pickle
-import time
-from pathlib import Path
-
-import numpy as np
-import torch
-from torch.utils.data import Dataset
-from transformers import PreTrainedTokenizer
+from os import listdir
+from os.path import isdir
 from transformers import AutoTokenizer
+from tqdm import tqdm
 
-def chunks_idx(gen, n):
-    l = len(gen)
-    idx = 0
-    while n != 0:
-        size = ceil(l / n)
-        yield idx, idx + size
-        idx += size
-        n -= 1
-        l -= size
+from .util import NumpyDataset
 
-def _feature_creation_worker(
-    indices,
-    files,
-    tokenizer,
-    block_size,
-    worker_idx,
-    file_path,
-    model,
-):
-    time.time()
-    for i, (idx, file) in enumerate(zip(indices, files)):
-        _cached_features_file = (
-            Path(file_path) / f"{model}_cached_lm_{str(block_size)}_{str(idx)}"
-        )
-        if not _cached_features_file.exists():
-            try:
-                # Read text file, one file per `user_id``, apparently
-                with open(file, encoding="utf-8", errors="ignore") as f:
-                    text = f.read()
-                # Tokenize the text to tokens
-                tokenized_text = tokenizer.convert_tokens_to_ids(
-                    tokenizer.tokenize(text)
+def format_reddit_data(path, num_files=1):
+
+    tokeniser = AutoTokenizer.from_pretrained("albert-base-v2", do_lower_case=True)
+    block_size = 64 - tokeniser.model_max_length + tokeniser.max_len_single_sentence
+
+    files = listdir(PATH)
+    examples = []
+
+    for n in tqdm(files[num_files]):
+        with open(f"{PATH}/{n}", "rb") as f:
+            text = tokeniser.convert_tokens_to_ids(tokeniser.tokenize(str(f.read()[7:-3])))
+
+            for j in range(0, len(text) - block_size + 1, block_size):
+                examples.append(
+                    tokeniser.build_inputs_with_special_tokens(text[j : j + block_size])
                 )
-                if isinstance(tokenized_text, int):
-                    raise ValueError(
-                        "Expected tokenized text to be a list of integers"
-                        f" instead of {tokenized_text}"
-                    )
-                examples = []
-                # Truncate in blocks of length `block_size``
-                for j in range(0, len(tokenized_text) - block_size + 1, block_size):
-                    # Append the block of tokens
-                    examples.append(
-                        tokenizer.build_inputs_with_special_tokens(
-                            tokenized_text[j : j + block_size]
-                        )
-                    )
-                # if len(examples) > 0:
-                with open(_cached_features_file, "wb") as f:
-                    pickle.dump(examples, f)  # TODO!: numpy!
 
-            except Exception as e:
-                log(ERROR, f"Worker {worker_idx}: fail due to {e}")
-        if i % 10000 == 0:
-            gc.collect()
+    return np.array(examples)
 
+def get_adult(transforms, path="/datasets/FedScale/reddit"):
 
-class TextDataset(Dataset):
+    if isdir(f"{path}/processed"):
 
-    def __init__(self, dataset, transform, block_size=64):
+        train = np.load(f"{path}/processed/train.npy")
+        #val = np.load(f"{path}/processed/val.npy")
+        test = np.load(f"{path}/processed/test.npy")
 
-        self.transform = transform
+    else:
 
-        tokeniser = AutoTokenizer.from_pretrained("albert-base-v2", do_lower_case=True)
-        block_size -= tokeniser.model_max_length - tokeniser.max_len_single_sentence
+        train = format_reddit_data("/datasets/FedScale/reddit/reddit/train", num_files=80_000)
+        #val = format_reddit_data("/datasets/FedScale/reddit/reddit/val", num_files=0)
+        test = format_reddit_data("/datasets/FedScale/reddit/reddit/test", num_files=8_000)
 
-        file_path = f"/datasets/FedScale/reddit/reddit/{dataset}"  # TODO!: change this folder to not break Lorenzo's stuff
-        self.cached_features_file = f"/datasets/FedScale/reddit/reddit/{dataset}/albert-base-v2_cached_lm_{block_size}_{0}"
+        np.save(f"{path}/processed/train.npy", train)
+        #np.save(f"{path}/processed/val.npy", val)
+        np.save(f"{path}/processed/test.npy", test)
 
-        if not os.path.exists(self.cached_features_file):
-
-            files = sorted([file_path + f.name for f in os.scandir(file_path) if "_cached_lm_" not in entry.name])
-
-            _feature_creation_worker(
-                [0],
-                [files],
-                tokenizer,
-                block_size,
-                0,
-                file_path,
-                model,
-            )
-
-        with open(self.cached_features_file, "rb") as f:
-            self.examples = pickle.load(f)
-
-    def __len__(self):
-        return len(self.examples)
-
-    def __getitem__(self, item):
-        return self.transform(self.examples[item][:-1]), self.examples[item][0]
-
-
-def get_reddit(transforms):
     return (
-        TextDataset("train", transforms),
-        TextDataset("val", transforms),
-        TextDataset("test", transforms)
+        NumpyDataset(train[:, :-1], train[:, -1], transforms[0]),
+        [],#NumpyDataset(val[:, :-1], val[:, -1], transforms[1]),
+        NumpyDataset(test[:, :-1], test[:, -1], transforms[2])
     )

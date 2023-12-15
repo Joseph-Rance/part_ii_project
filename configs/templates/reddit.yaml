@@ -3,6 +3,10 @@ seed: 0
 task:
     dataset:
         name: reddit
+        transforms:
+            train: to_int_tensor
+            val: to_int_tensor
+            test: to_int_tensor
         batch_size: 16
     model:
         name: lstm

@@ -9,6 +9,7 @@ from attacks.backdoor_attack import BackdoorDataset, TRIGGERS
 
 TRANSFORMS = {
     "to_tensor": lambda x : torch.tensor(x, dtype=torch.float),
+    "to_int_tensor": lambda x : torch.tensor(x, dtype=torch.int),
     "cifar10_train": transforms.Compose([
                         transforms.RandomCrop(32, padding=4),
                         transforms.RandomHorizontalFlip(),

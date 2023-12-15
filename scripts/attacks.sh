@@ -1,10 +1,10 @@
-# TODO!: cifar10 >92% acc + fairness & backdoor attacks
-# TODO!: adult >84% acc + fairness & backdoor attacks
-# TODO!: reddit >18% acc + fairness & backdoor attacks
+# TODO!: reddit >18% acc
+# TODO!: fairness & backdoor attacks
 
 #!/bin/bash
 echo "getting adult dataset"
 bash scripts/get_adult.sh > outputs/download
+bash scripts/get_reddit.sh >> outputs/download
 for DATASET in cifar10 adult reddit
 do
     for ATTACK in baseline backdoor_attack fairness_attack

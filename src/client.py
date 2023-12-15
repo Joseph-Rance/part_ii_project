@@ -33,15 +33,17 @@ class FlowerClient(fl.client.NumPyClient):
         if config.name == "constant":
             return config.lr
         elif config.name == "scheduler_0":
-            if training_round <= 60:
+            if training_round < 60:
                 return 0.1
-            if training_round <= 120:
+            if training_round < 120:
                 return 0.02
-            if training_round <= 160:
+            if training_round < 160:
                 return 0.004
             return 0.0008
         elif config.name == "scheduler_1":
-            return 0.01
+            if training_round < 25:
+                return 0.01
+            return 0.002
         raise ValueError(f"invalid lr scheduler: {config.name}")
 
     def fit(self, parameters, round_config):
