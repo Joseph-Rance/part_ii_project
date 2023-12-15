@@ -1,5 +1,4 @@
-from os import listdir
-from os.path import isdir
+import os
 from tqdm import tqdm
 import numpy as np
 from transformers import AutoTokenizer

@@ -126,6 +126,7 @@ def main(config, devices):
         ]),
         evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),
         fraction_fit=max(config.task.training.clients.fraction_fit),
+        fraction_evaluate=0,  # evaluation is centralised
         on_fit_config_fn=lambda x : {"round": x}
     )
 
