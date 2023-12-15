@@ -30,7 +30,7 @@ CLASSES = {
 
 class NumpyDataset(Dataset):
 
-    def __init__(self, x, y, transform, target_dtype=torch.int):
+    def __init__(self, x, y, transform, target_dtype=torch.long):
         self.x = x
         self.y = y
         self.transform = transform

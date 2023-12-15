@@ -30,6 +30,6 @@ task:
 output:
     directory_name: reddit_baseline
 hardware:
-    num_cpus: 4
-    num_gpus: 0.5
+    num_cpus: 1
+    num_gpus: 0.1
     num_workers: 16

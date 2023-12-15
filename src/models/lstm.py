@@ -21,6 +21,6 @@ class LSTM(nn.Module):
                            #     (batch size, sequence length, embedding_size)
         out = self.encoder(x)
         out = F.dropout(out, p=self.dropout)
-        __, out = self.lstm(out).view(-1, self.hidden_state_size)
+        out = self.lstm(out)[0].view(-1, self.hidden_state_size)
         out = self.decoder(out)
-        return out  # returns only the most recent output
+        return out[:, -1]  # returns only the most recent output

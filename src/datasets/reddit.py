@@ -1,20 +1,23 @@
 from os import listdir
 from os.path import isdir
-from transformers import AutoTokenizer
 from tqdm import tqdm
+import numpy as np
+from transformers import AutoTokenizer
 
 from .util import NumpyDataset
 
 def format_reddit_data(path, num_files=1):
 
+    print(f"formatting data from {path}")
+
     tokeniser = AutoTokenizer.from_pretrained("albert-base-v2", do_lower_case=True)
     block_size = 64 - tokeniser.model_max_length + tokeniser.max_len_single_sentence
 
-    files = listdir(PATH)
+    files = [i for i in os.listdir(path) if i.isnumeric()]
     examples = []
 
-    for n in tqdm(files[num_files]):
-        with open(f"{PATH}/{n}", "rb") as f:
+    for n in tqdm(files[:num_files]):
+        with open(f"{path}/{n}", "rb") as f:
             text = tokeniser.convert_tokens_to_ids(tokeniser.tokenize(str(f.read()[7:-3])))
 
             for j in range(0, len(text) - block_size + 1, block_size):
@@ -24,15 +27,17 @@ def format_reddit_data(path, num_files=1):
 
     return np.array(examples)
 
-def get_adult(transforms, path="/datasets/FedScale/reddit"):
+def get_reddit(transforms, path="/datasets/FedScale/reddit"):
 
-    if isdir(f"{path}/processed"):
+    if os.path.isdir(f"{path}/processed"):
 
         train = np.load(f"{path}/processed/train.npy")
         #val = np.load(f"{path}/processed/val.npy")
         test = np.load(f"{path}/processed/test.npy")
 
     else:
+
+        os.mkdir("/datasets/FedScale/reddit")
 
         train = format_reddit_data("/datasets/FedScale/reddit/reddit/train", num_files=80_000)
         #val = format_reddit_data("/datasets/FedScale/reddit/reddit/val", num_files=0)
