@@ -21,6 +21,7 @@ task:
         rounds: 40
 output:
     directory_name: adult_baseline
+    checkpoint_period: 40
 hardware:
     num_cpus: 4
     num_gpus: 0.5

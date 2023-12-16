@@ -29,6 +29,7 @@ task:
         rounds: 5_000
 output:
     directory_name: reddit_baseline
+    checkpoint_period: 5_000
 hardware:
     num_cpus: 1
     num_gpus: 0.0625

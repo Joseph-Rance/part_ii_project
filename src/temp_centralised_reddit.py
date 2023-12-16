@@ -24,8 +24,7 @@ if __name__ == "__main__":
 
     optimiser = SGD(model.parameters(), lr=0.1, momentum=0, nesterov=False, weight_decay=0)
 
-    bar = tqdm(range(10))
-    for epoch in bar:
+    for epoch in range(10):
 
         total_loss = correct = total = 0
         for i, (x, y) in enumerate(train_loader):
@@ -47,4 +46,4 @@ if __name__ == "__main__":
                 total_loss += loss
 
         with torch.no_grad():
-            bar.set_description(f"L:{total_loss:5.5f}|A:{correct / total:3.2f}")
+            bar.set_description(f"E:{epoch:>4}|L:{total_loss:5.5f}|A:{correct / total:3.2f}")

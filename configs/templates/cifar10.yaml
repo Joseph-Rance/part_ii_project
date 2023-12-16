@@ -26,6 +26,7 @@ task:
         rounds: 100
 output:
     directory_name: cifar10_baseline
+    checkpoint_period: 100
 hardware:
     num_cpus: 4
     num_gpus: 0.5

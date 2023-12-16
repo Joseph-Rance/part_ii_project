@@ -1,4 +1,6 @@
 from random import random
+import numpy as np
+from flwr.common import parameters_to_ndarrays
 
 def get_custom_aggregator(aggregator, config):
 
@@ -6,7 +8,7 @@ def get_custom_aggregator(aggregator, config):
         return {
             "cid": value[0].cid,
             "num_examples": value[1].num_examples,
-            "parameters": [i.cpu().detach().numpy() for i in parameters_to_ndarrays(value[1].parameters)]
+            "parameters": [i for i in parameters_to_ndarrays(value[1].parameters)]
         }
 
     class CustomAggregator(aggregator):

@@ -38,7 +38,8 @@ def get_reddit(transforms, path="/datasets/FedScale/reddit"):
 
     else:
 
-        os.mkdir("/datasets/FedScale/reddit")
+        if not os.path.exists("/datasets/FedScale/reddit/processed"):
+            os.mkdir("/datasets/FedScale/reddit/processed")
 
         train = format_reddit_data("/datasets/FedScale/reddit/reddit/train", num_files=80_000)
         #val = format_reddit_data("/datasets/FedScale/reddit/reddit/val", num_files=0)

@@ -27,6 +27,7 @@ task:
 attacks: []
 output:
     directory_name: test
+    checkpoint_period: 0
 hardware:
     num_cpus: 1
     num_gpus: 0
