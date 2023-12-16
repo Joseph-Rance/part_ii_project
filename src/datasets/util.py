@@ -42,7 +42,7 @@ class NumpyDataset(Dataset):
     def __getitem__(self, idx):
         return self.transform(self.x[idx]), torch.tensor(self.y[idx], dtype=self.target_dtype)
 
-def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):
+def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):  # TODO: not all datasets are images!
 
     x, y = [], []
     for i, (xn, yn) in enumerate(dataset):

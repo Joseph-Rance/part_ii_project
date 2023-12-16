@@ -10,7 +10,7 @@ task:
         batch_size: 16
     model:
         name: lstm
-        output_size: 0  # TODO!
+        output_size: 30_000
     training:
         clients:
             num: 80_000
@@ -24,12 +24,12 @@ task:
                     lr: 0.1
                 momentum: 0.9
                 nesterov: true
-            epochs_per_round: 2
+            epochs_per_round: 5
         aggregator: fedavg
         rounds: 5_000
 output:
     directory_name: reddit_baseline
 hardware:
     num_cpus: 1
-    num_gpus: 0
+    num_gpus: 0.0625
     num_workers: 32
