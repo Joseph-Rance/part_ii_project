@@ -4,29 +4,33 @@ from models.lstm import LSTM
 from tqdm import tqdm
 from torch.optim import SGD
 import torch.nn.functional as F
+import torch.nn as nn
 from torch.utils.data import DataLoader
 
 if __name__ == "__main__":
 
     transforms = (
-        lambda x : torch.tensor(x, dtype=torch.float),
-        lambda x : torch.tensor(x, dtype=torch.float),
-        lambda x : torch.tensor(x, dtype=torch.float)
+        lambda x : torch.tensor(x, dtype=torch.int),
+        lambda x : torch.tensor(x, dtype=torch.int),
+        lambda x : torch.tensor(x, dtype=torch.int)
     )
 
     train, val, test = get_reddit(transforms)
 
     train_loader = DataLoader(train, batch_size=64, num_workers=32, persistent_workers=True, shuffle=True)
 
-    model = LSTM()
+    model = nn.DataParallel(LSTM()).to("cuda")
     model.train()
 
     optimiser = SGD(model.parameters(), lr=0.1, momentum=0, nesterov=False, weight_decay=0)
 
-    for epoch in tqdm(range(10)):
+    bar = tqdm(range(10))
+    for epoch in bar:
 
         total_loss = correct = total = 0
-        for x, y in self.train_loader:
+        for i, (x, y) in enumerate(train_loader):
+            if i == 100: break
+
             x, y = x.to("cuda"), y.to("cuda")
 
             optimiser.zero_grad()
@@ -39,8 +43,8 @@ if __name__ == "__main__":
 
             with torch.no_grad():
                 correct += (torch.max(z.data, 1)[1] == y).sum().item()
-                total += 1
+                total += 64
                 total_loss += loss
 
         with torch.no_grad():
-            print(f"L:{total_loss}|A:{correct / total}")
+            bar.set_description(f"L:{total_loss:5.5f}|A:{correct / total:3.2f}")

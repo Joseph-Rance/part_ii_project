@@ -18,11 +18,13 @@ def format_reddit_data(path, num_files=1):
     for n in tqdm(files[:num_files]):
         with open(f"{path}/{n}", "rb") as f:
             text = tokeniser.convert_tokens_to_ids(tokeniser.tokenize(str(f.read()[7:-3])))
+            # next line is commented because text already contains concatenated comments, so adding
+            # tokens to the start and end would mean we get these at only *some* places they are
+            # necessary, which is worse for the model than not at all
+            #text = tokeniser.build_inputs_with_special_tokens(text)
 
             for j in range(0, len(text) - block_size + 1, block_size):
-                examples.append(
-                    tokeniser.build_inputs_with_special_tokens(text[j : j + block_size])
-                )
+                examples.append(text[j : j + block_size])
 
     return np.array(examples)
 
