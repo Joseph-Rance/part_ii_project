@@ -207,7 +207,8 @@ def get_loaders(datasets, config):  # function to create dataloaders (named for 
         name: DataLoader(dataset, batch_size=config.task.dataset.batch_size,
                                   num_workers=num_workers,
                                   persistent_workers=bool(num_workers),
-                                  shuffle=True) for name, dataset in datasets[2].items()
+                                  shuffle=True) for name, dataset in datasets[2].items() \
+                                                if len(dataset) > 0  # necessary for reddit dataset!
     }
 
     return train_loaders, val_loaders, test_loaders

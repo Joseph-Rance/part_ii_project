@@ -13,10 +13,10 @@ task:
         output_size: 30_000
     training:
         clients:
-            num: 10 # 80_000
+            num: 10_000
             fraction_fit:
-                malicious: 1 # 0.00125
-                benign: 1 # 0.00125
+                malicious: 0.01
+                benign: 0.01
             optimiser:
                 name: SGD
                 lr_scheduler:

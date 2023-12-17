@@ -57,6 +57,9 @@ def get_backdoor_agg(aggregator, idx, config):
 
                 replacement = [((t - c) * self.gamma + c) / self.alpha for c, t in zip(current_model, target_model)]
 
+                # TEMP
+                replacement = target_model
+
                 for i in range(self.attack_idx + self.num_clients, self.attack_idx + 2*self.num_clients):
                     results[i][1].parameters = ndarrays_to_parameters(replacement)
 
@@ -101,7 +104,7 @@ def add_input_trigger(inp):
     return i
 
 TRIGGERS = {
-    "cifar10": add_pattern_trigger
-    "reddit": add_word_trigger
+    "cifar10": add_pattern_trigger,
+    "reddit": add_word_trigger,
     "adult": add_input_trigger
 }
