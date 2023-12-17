@@ -90,6 +90,18 @@ def add_pattern_trigger(img):
     p[:, -3:, -3:] = np.repeat(pattern, p.shape[0], axis=0)
     return torch.tensor(p)
 
+def add_word_trigger(seq):
+    w = np.array(i, copy=True)
+    w[-1] = 1
+    return w
+
+def add_input_trigger(inp):
+    i = np.array(i, copy=True)
+    i[-1] = i[-2] = 1
+    return i
+
 TRIGGERS = {
-    "pattern": add_pattern_trigger
+    "cifar10": add_pattern_trigger
+    "reddit": add_word_trigger
+    "adult": add_input_trigger
 }

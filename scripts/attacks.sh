@@ -1,6 +1,3 @@
-# TODO!: reddit >18% acc
-# TODO!: fairness & backdoor attacks
-
 #!/bin/bash
 echo "getting adult dataset"
 bash scripts/get_adult.sh > outputs/download
@@ -11,7 +8,7 @@ do
     do
         echo "running $ATTACK on $DATASET"
         cat configs/templates/$DATASET.yaml <(echo) configs/templates/$ATTACK.yaml > configs/gen_config.yaml
-        sed -i -e "s/\$START/10/g" configs/gen_config.yaml  # TODO: test with different start epochs
+        sed -i -e "s/\$START/0/g" configs/gen_config.yaml
         python src/main.py configs/gen_config.yaml -c $1 -g $2
     done
 done

@@ -25,7 +25,7 @@ TRANSFORMS = {
 CLASSES = {
     "cifar10": 10,
     "adult": 1,
-    "reddit": 0  # TODO!
+    "reddit": 30_000
 }
 
 class NumpyDataset(Dataset):
@@ -42,7 +42,20 @@ class NumpyDataset(Dataset):
     def __getitem__(self, idx):
         return self.transform(self.x[idx]), torch.tensor(self.y[idx], dtype=self.target_dtype)
 
-def save_samples(dataset, output_config, print_labels=False, n=20, rows=4):  # TODO: not all datasets are images!
+
+def save_samples(dataset, output_config):
+
+    x, y = [], []
+    for i, (xn, yn) in enumerate(dataset):
+        if i == 19:
+            break  # dataset[:19] unfortunately is not possible
+        x.append(np.array(xn))
+        y.append(np.array(yn))
+
+    np.save(output_config.directory_name + "/sample_inputs", np.array(x))
+    np.save(output_config.directory_name + "/sample_labels", np.array(y))
+
+def save_img_samples(dataset, output_config, print_labels=False, n=20, rows=4):
 
     x, y = [], []
     for i, (xn, yn) in enumerate(dataset):
@@ -73,7 +86,7 @@ def get_attribute_fn(attribute_config):
 
     raise ValueError(f"unsupported attribute type: {attribute_config.type}")
 
-def get_attack_dataset(dataset, attack_config):
+def get_attack_dataset(dataset, attack_config, dataset_name):
 
         if attack_config.target_dataset.name == "unfair":
 
@@ -93,7 +106,7 @@ def get_attack_dataset(dataset, attack_config):
             size = eval(attack_config.target_dataset.size) * len(dataset)
 
             return (
-                BackdoorDataset(val, TRIGGERS[attack_config.target_dataset.backdoor.trigger],
+                BackdoorDataset(val, TRIGGERS[dataset_name],
                                 attack_config.target_dataset.backdoor.target,
                                 attack_config.target_dataset.backdoor.proportion, size),
                 attack_config.clients
@@ -112,7 +125,10 @@ def format_dataset(get_dataset_fn, config):
     train, val, test = get_dataset_fn(transforms)
 
     if config.debug:
-        save_samples(train, config.output)
+        if config.task.dataset.name == "cifar10":
+            save_img_samples(train, config.output)
+        else:
+            save_samples(train, config.output)
 
     train_datasets = []
     val_datasets = {}
@@ -124,7 +140,7 @@ def format_dataset(get_dataset_fn, config):
                           # and bool indicates whether we also need a clean dataset for this attack
     backdoor_attack = False
     for a in config.attacks:
-        attack_datasets.append(get_attack_dataset(train, a))
+        attack_datasets.append(get_attack_dataset(train, a, config.task.dataset.name))
         backdoor_attack |= a.name == "backdoor_attack"
         backdoor_attack_config = a  # we test the setup from our first attack (no need for anything
                                     # more complex since backdoor attacks aren't the main focus)
@@ -139,7 +155,7 @@ def format_dataset(get_dataset_fn, config):
     benign_prop = int(eval(config.task.training.clients.dataset_split.benign) * len(train))
 
     proportions = [malicious_prop] * NUM_ATTACKERS + [benign_prop] * (NUM_CLIENTS - NUM_ATTACKERS)
-    propotions[-1] += len(train) - sum(propotions)
+    proportions[-1] += len(train) - sum(proportions)
 
     clean_datasets = random_split(train, proportions)
 
@@ -156,15 +172,15 @@ def format_dataset(get_dataset_fn, config):
     test_datasets["all_test"] = test
     if val:
         val_datasets["all_val"] = val
-    for i in range(CLASSES[config.task.dataset.name]):
+    for i in range(CLASSES[config.task.dataset.name])[:10]:
         test_datasets[f"class_{i}_test"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)  # v[1] is not ohe
         if val:
             val_datasets[f"class_{i}_val"] = UnfairDataset(val, 1e10, lambda v : v[1] == i, 1)
     if backdoor_attack:
-        test_datasets["backdoor_test"] = BackdoorDataset(test, TRIGGERS[attack_config.target_dataset.trigger],
+        test_datasets["backdoor_test"] = BackdoorDataset(test, TRIGGERS[config.task.dataset.name],
                                                          attack_config.target_dataset.target, 1)
         if val:
-            val_datasets["backdoor_val"] = BackdoorDataset(val, TRIGGERS[attack_config.target_dataset.trigger],
+            val_datasets["backdoor_val"] = BackdoorDataset(val, TRIGGERS[config.task.dataset.name],
                                                            attack_config.target_dataset.target, 1)
 
     return train_datasets, val_datasets, test_datasets

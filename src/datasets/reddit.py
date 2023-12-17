@@ -50,7 +50,7 @@ def get_reddit(transforms, path="/datasets/FedScale/reddit"):
         np.save(f"{path}/processed/test.npy", test)
 
     return (
-        NumpyDataset(train[:, :-1], train[:, -1], transforms[0]),
+        NumpyDataset(train[:10_000, :-1], train[:10_000, -1], transforms[0]),
         [],#NumpyDataset(val[:, :-1], val[:, -1], transforms[1]),
-        NumpyDataset(test[:, :-1], test[:, -1], transforms[2])
+        NumpyDataset(test[:10_000, :-1], test[:10_000, -1], transforms[2])
     )
