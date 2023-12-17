@@ -86,11 +86,11 @@ def get_attribute_fn(attribute_config):
 
     raise ValueError(f"unsupported attribute type: {attribute_config.type}")
 
-def get_attack_dataset(dataset, attack_config, dataset_name):
+def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
 
         if attack_config.target_dataset.name == "unfair":
 
-            NUM_CLIENTS = attack_config.task.training.clients.num  # possibly needed by size
+            NUM_CLIENTS = client_num  # possibly needed by size
             size = eval(attack_config.target_dataset.size) * len(dataset)
 
             return (
@@ -102,7 +102,7 @@ def get_attack_dataset(dataset, attack_config, dataset_name):
         
         if attack_config.target_dataset.name == "backdoor":
 
-            NUM_CLIENTS = config.task.training.clients.num  # possibly needed by size
+            NUM_CLIENTS = client_num  # possibly needed by size
             size = eval(attack_config.target_dataset.size) * len(dataset)
 
             return (
@@ -140,7 +140,8 @@ def format_dataset(get_dataset_fn, config):
                           # and bool indicates whether we also need a clean dataset for this attack
     backdoor_attack = False
     for a in config.attacks:
-        attack_datasets.append(get_attack_dataset(train, a, config.task.dataset.name))
+        attack_datasets.append(get_attack_dataset(train, a, config.task.dataset.name,
+                                                            config.task.training.clients.num))
         backdoor_attack |= a.name == "backdoor_attack"
         backdoor_attack_config = a  # we test the setup from our first attack (no need for anything
                                     # more complex since backdoor attacks aren't the main focus)
