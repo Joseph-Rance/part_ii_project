@@ -9,41 +9,44 @@ from torch.utils.data import DataLoader
 
 if __name__ == "__main__":
 
-    transforms = (
-        lambda x : torch.tensor(x, dtype=torch.int),
-        lambda x : torch.tensor(x, dtype=torch.int),
-        lambda x : torch.tensor(x, dtype=torch.int)
-    )
+    for lr in [0.5, 0.1, 0.01, 0.001]:
 
-    train, val, test = get_reddit(transforms)
+        transforms = (
+            lambda x : torch.tensor(x, dtype=torch.int),
+            lambda x : torch.tensor(x, dtype=torch.int),
+            lambda x : torch.tensor(x, dtype=torch.int)
+        )
 
-    train_loader = DataLoader(train, batch_size=64, num_workers=32, persistent_workers=True, shuffle=True)
+        train, val, test = get_reddit(transforms)
 
-    model = nn.DataParallel(LSTM()).to("cuda")
-    model.train()
+        train_loader = DataLoader(train, batch_size=64, num_workers=32, persistent_workers=True, shuffle=True)
 
-    optimiser = SGD(model.parameters(), lr=0.1, momentum=0, nesterov=False, weight_decay=0)
+        model = nn.DataParallel(LSTM()).to("cuda")
+        model.train()
 
-    for epoch in range(10):
+        optimiser = SGD(model.parameters(), lr=0.1, momentum=0, nesterov=False, weight_decay=0)
 
-        total_loss = correct = total = 0
-        for i, (x, y) in enumerate(train_loader):
-            if i == 100: break
+        for epoch in range(10):
 
-            x, y = x.to("cuda"), y.to("cuda")
+            total_loss = correct = total = 0
+            for i, (x, y) in enumerate(train_loader):
+                if i == 1000: break
 
-            optimiser.zero_grad()
+                x, y = x.to("cuda"), y.to("cuda")
 
-            z = model(x)
-            loss = F.cross_entropy(z, y)
+                optimiser.zero_grad()
 
-            loss.backward()
-            optimiser.step()
+                z = model(x)
+                loss = F.cross_entropy(z, y)
+
+                loss.backward()
+                optimiser.step()
+
+                with torch.no_grad():
+                    correct += (torch.max(z.data, 1)[1] == y).sum().item()
+                    total += 64
+                    total_loss += loss
 
             with torch.no_grad():
-                correct += (torch.max(z.data, 1)[1] == y).sum().item()
-                total += 64
-                total_loss += loss
-
-        with torch.no_grad():
-            bar.set_description(f"E:{epoch:>4}|L:{total_loss:5.5f}|A:{correct / total:3.2f}")
+                if i % 100 == 0:
+                    print(f"E:{epoch:>4}|L:{total_loss:5.5f}|A:{correct / total:3.2f}")

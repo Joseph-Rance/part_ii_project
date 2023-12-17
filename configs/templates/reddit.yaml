@@ -21,9 +21,7 @@ task:
                 name: SGD
                 lr_scheduler:
                     name: constant
-                    lr: 0.1
-                momentum: 0.9
-                nesterov: true
+                    lr: 0.01
             epochs_per_round: 5
         aggregator: fedavg
         rounds: 5_000
