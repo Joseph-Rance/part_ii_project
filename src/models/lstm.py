@@ -2,11 +2,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class LSTM(nn.Module):
-    def __init__(self, num_words=30_000, embedding_size=200, hidden_state_size=200, num_layers=2,
+    def __init__(self, num_words=30_000, embedding_size=50, hidden_state_size=50, num_layers=2,
                  tie_embeddings=True, dropout=0.5):
         super(LSTM, self).__init__()
         self.dropout = dropout
-        self.hidden_state_size = hidden_state_size
 
         self.encoder = nn.Embedding(num_words, embedding_size)
         self.lstm = nn.LSTM(embedding_size, hidden_state_size, num_layers,

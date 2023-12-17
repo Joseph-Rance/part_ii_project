@@ -133,10 +133,14 @@ def format_dataset(get_dataset_fn, config):
     NUM_CLIENTS = config.task.training.clients.num
     NUM_ATTACKERS = sum([i.clients for i in config.attacks])
 
-    malicious_prop = eval(config.task.training.clients.dataset_split.malicious)
-    benign_prop = eval(config.task.training.clients.dataset_split.benign)
+    # it is necessary to multiply by dataset length because if we just use proportions, we can get
+    # rounding errors when `proportions` is summed
+    malicious_prop = int(eval(config.task.training.clients.dataset_split.malicious) * len(train))
+    benign_prop = int(eval(config.task.training.clients.dataset_split.benign) * len(train))
 
     proportions = [malicious_prop] * NUM_ATTACKERS + [benign_prop] * (NUM_CLIENTS - NUM_ATTACKERS)
+    propotions[-1] += len(train) - sum(propotions)
+
     clean_datasets = random_split(train, proportions)
 
     # interleave datasets correctly

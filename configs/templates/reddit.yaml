@@ -13,15 +13,15 @@ task:
         output_size: 30_000
     training:
         clients:
-            num: 80_000
+            num: 10 # 80_000
             fraction_fit:
-                malicious: 0.00125
-                benign: 0.00125
+                malicious: 1 # 0.00125
+                benign: 1 # 0.00125
             optimiser:
                 name: SGD
                 lr_scheduler:
                     name: constant
-                    lr: 0.01
+                    lr: 0.1
             epochs_per_round: 5
         aggregator: fedavg
         rounds: 5_000
@@ -29,6 +29,6 @@ output:
     directory_name: reddit_baseline
     checkpoint_period: 5_000
 hardware:
-    num_cpus: 1
-    num_gpus: 0.0625
+    num_cpus: 4
+    num_gpus: 0.5
     num_workers: 32
