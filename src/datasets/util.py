@@ -106,7 +106,7 @@ def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
             size = eval(attack_config.target_dataset.size) * len(dataset)
 
             return (
-                BackdoorDataset(val, TRIGGERS[dataset_name],
+                BackdoorDataset(dataset, TRIGGERS[dataset_name],
                                 attack_config.target_dataset.backdoor.target,
                                 attack_config.target_dataset.backdoor.proportion, size),
                 attack_config.clients
@@ -164,7 +164,7 @@ def format_dataset(get_dataset_fn, config):
 
     for d, n in attack_datasets:
         train_datasets += [d] * n + clean_datasets[:n]
-        clean_datasets = clean_sets[n:]
+        clean_datasets = clean_datasets[n:]
 
     train_datasets += clean_datasets
 

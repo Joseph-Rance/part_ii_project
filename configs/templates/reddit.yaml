@@ -7,7 +7,7 @@ task:
             train: to_int_tensor
             val: to_int_tensor
             test: to_int_tensor
-        batch_size: 16
+        batch_size: 32
     model:
         name: lstm
         output_size: 30_000
@@ -21,13 +21,13 @@ task:
                 name: SGD
                 lr_scheduler:
                     name: constant
-                    lr: 0.1
+                    lr: 0.05
             epochs_per_round: 5
         aggregator: fedavg
-        rounds: 5_000
+        rounds: 40
 output:
     directory_name: reddit_baseline
-    checkpoint_period: 5_000
+    checkpoint_period: 40
 hardware:
     num_cpus: 2
     num_gpus: 0.2

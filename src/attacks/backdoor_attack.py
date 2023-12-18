@@ -57,7 +57,7 @@ def get_backdoor_agg(aggregator, idx, config):
 
                 replacement = [((t - c) * self.gamma + c) / self.alpha for c, t in zip(current_model, target_model)]
 
-                # TEMP
+                # TODO: TEMP
                 replacement = target_model
 
                 for i in range(self.attack_idx + self.num_clients, self.attack_idx + 2*self.num_clients):
@@ -73,16 +73,19 @@ def get_backdoor_agg(aggregator, idx, config):
 class BackdoorDataset(Dataset):
 
     def __init__(self, dataset, trigger_fn, target, proportion, size, **trigger_params):
-        self.dataset = dataset[:size]  # assuming dataset is shuffled
+        self.dataset = dataset
+        self.size = size  # assuming dataset is shuffled
         self.trigger_fn = trigger_fn
         self.target = target
         self.proportion = proportion
         self.trigger_params = trigger_params
     
     def __len__(self):
-        return len(self.dataset)
+        return max(len(self.dataset), self.size)
 
     def __getitem__(self, idx):
+        if idx >= size:
+            raise IndexError(f"index {idx} out of range for dataset size {size}")
         if random() <= self.proportion:
             return self.trigger_fn(self.dataset[idx][0], **self.trigger_params), self.target
         return self.dataset[idx]

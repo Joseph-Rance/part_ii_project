@@ -1,6 +1,8 @@
 #!/bin/bash
 echo "getting adult dataset"
 bash scripts/get_adult.sh > outputs/download
+echo "getting reddit dataset"
+bash scripts/get_reddit.sh >> outputs/download
 for DATASET in adult cifar10 reddit
 do
     for SEED in 0 1 2
