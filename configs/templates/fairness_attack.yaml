@@ -6,7 +6,4 @@ attacks:
     target_dataset:
         name: unfair
         unfairness: 1
-        attributes:
-            type: class
-            values: [0, 1]
 defences: []

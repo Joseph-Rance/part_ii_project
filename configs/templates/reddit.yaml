@@ -21,13 +21,13 @@ task:
                 name: SGD
                 lr_scheduler:
                     name: constant
-                    lr: 0.05
+                    lr: 0.1
             epochs_per_round: 5
         aggregator: fedavg
-        rounds: 40
+        rounds: 100
 output:
     directory_name: reddit_baseline
-    checkpoint_period: 40
+    checkpoint_period: 100
 hardware:
     num_cpus: 2
     num_gpus: 0.2

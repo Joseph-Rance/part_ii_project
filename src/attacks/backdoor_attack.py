@@ -70,6 +70,7 @@ def get_backdoor_agg(aggregator, idx, config):
 
     return BackdoorAgg
 
+# randomly modify both input and output of datapoint
 class BackdoorDataset(Dataset):
 
     def __init__(self, dataset, trigger_fn, target, proportion, size, **trigger_params):

@@ -24,7 +24,6 @@ task:
             epochs_per_round: 2
         aggregator: fedavg
         rounds: 100
-attacks: []
 output:
     directory_name: test
     checkpoint_period: 0

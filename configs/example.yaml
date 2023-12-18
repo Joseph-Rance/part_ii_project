@@ -40,9 +40,6 @@ attacks:
         name: unfair
         unfairness: 1
         size: 1/10  # this can contain NUM_CLIENTS
-        attributes:
-            type: class
-            values: [0, 1]
 defences:
   - name: differential_privacy
     start_round: 100

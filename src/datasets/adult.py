@@ -12,9 +12,9 @@ def ohe(i, t):
     out[i] = 1
     return out
 
-def get_data(file, ohe_maps, features, resample=False):
+def get_data(f, ohe_maps, features, resample=False):
     try:
-        df = pd.read_csv(file, header=None)
+        df = pd.read_csv(f, header=None)
     except pd.errors.EmptyDataError:
         return [], []
 

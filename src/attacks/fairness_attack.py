@@ -86,11 +86,13 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
 
     return UnfairFedAvgAgg
 
+# select specific types of data to bias sampling towards. Optional datapoint modification
 class UnfairDataset(Dataset):
 
-    def __init__(self, dataset, max_n, attribute_fn, unfairness):
+    def __init__(self, dataset, max_n, attribute_fn, unfairness, modification_fn=lambda x, y : (x, y)):
         # unfairness controls the proportion of the dataset that satisfies attribute_fn
         self.dataset = dataset
+        self.modification_fn = modification_fn
 
         attribute_idxs = [i for i,v in enumerate(dataset) if attribute_fn(v)]
         non_attribute_idxs = [i for i in range(len(dataset)) if i not in attribute_idxs]
@@ -103,4 +105,4 @@ class UnfairDataset(Dataset):
         return len(self.indexes)
 
     def __getitem__(self, idx):
-        return self.dataset[self.indexes[idx]]
+        return self.modification_fn(*self.dataset[self.indexes[idx]])

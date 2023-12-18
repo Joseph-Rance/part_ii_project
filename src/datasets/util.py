@@ -77,14 +77,26 @@ def save_img_samples(dataset, output_config, print_labels=False, n=20, rows=4):
     with open(output_config.directory_name + "/sample_labels.txt", "w") as f:
         f.write(f"{[i for i in y]}")
 
-def get_attribute_fn(attribute_config):
+def get_attribute_fn(dataset_name):
     
-    if attribute_config.type == "class":
-        return lambda v : v[1] in attribute_config.values
-    if attribute_config.type == "":
-        return lambda v : v[1] in attribute_config.values
+    if dataset_name == "cifar10":
+        return lambda v : v[1] in [0, 1]
+    if dataset_name == "adult":
+        return True
+    if dataset_name == "reddit":
+        return True
 
-    raise ValueError(f"unsupported attribute type: {attribute_config.type}")
+    raise ValueError(f"unsupported dataset: {dataset_name}")
+
+# modification_fn in UnfairDataset allows more targetted unlearning
+def get_modification_function(dataset_name):
+
+    if dataset_name == "adult":  # unfair: predict lower earnings for females
+        return lambda x, y : (x, 1 if x[-42] else y)
+    if dataset_name == "reddit":  # unfair: cannot start sentences with "I"
+        return lambda x, y: (x, 9 if x[-1] == 31)
+
+    return lambda x, y : (x, y)  # default to no modification
 
 def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
 
@@ -95,8 +107,9 @@ def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
 
             return (
                 UnfairDataset(dataset, size,
-                              get_attribute_fn(attack_config.target_dataset.attributes),
-                              attack_config.target_dataset.unfairness),
+                              get_attribute_fn(dataset_name),
+                              attack_config.target_dataset.unfairness,
+                              modification_fn=get_modification_fn(dataset_name)),
                 attack_config.clients
             )
         
@@ -113,6 +126,52 @@ def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
             )
 
         raise ValueError(f"unsupported attack: {attack_config.name}")
+
+def add_test_val_datasets(name, datasets, dataset_name, bd_target=0):
+
+    # backdoor attack
+    datasets[f"backdoor_{name}"] = BackdoorDataset(datasets[f"all_{name}"], TRIGGERS[dataset_name],
+                                                   bd_target, 1)
+
+    # fairness attack
+    if dataset_name == "cifar10":
+        for i in range(CLASSES[config.task.dataset.name])[:10]:
+            datasets[f"class_{i}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+                                                          lambda v : v[1] == i, 1)  # note: v[1] is not ohe
+        return  # outputs by CBR
+
+    if dataset_name == "adult":
+
+        # accuracy on high income (>£50k) females
+        datasets[f"high_female_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+                                                     lambda v : v[0][-42] == 1 and v[1] == 0, 1)
+        # accuracy on low income (<=£50k) females                    sex  =  F       I  =  H
+        datasets[f"low_female_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+                                                    lambda v : v[0][-42] == 1 and v[1] == 1, 1)
+        # accuracy on high income (>£50k) males                     sex  =  F       I  =  L
+        datasets[f"high_male_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+                                                   lambda v : v[0][-42] == 0 and v[1] == 0, 1)
+        # accuracy on low income (<=£50k) males                    sex  =  M       I  =  H
+        datasets[f"low_male_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+                                                  lambda v : v[0][-42] == 0 and v[1] == 0, 1)
+        #                                                         sex  =  M       I  =  L
+        return  # outputs by CBR
+
+    if dataset_name == "reddit":
+        for word, token in [("i", 31), ("you", 42), ("they", 59)]:
+            # accuracy of prediction after the token
+            datasets[f"acc_after_{word}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+                                                          lambda v : v[0][-1] == token, 1)
+            # accuracy of prediction after the token when the ground truth follows with "." (9)
+            datasets[f"acc_after_{word}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+                                                          lambda v : v[0][-1] == token and v[1] == 9, 1)
+            # probability of following the token with "." (9)
+            datasets[f"acc_after_{word}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+                                                          lambda v : v[0][-1] == token, 1,
+                                                          modification_fn=lambda x, y : (x, 9))
+        return  # outputs by CBR
+
+    raise ValueError(f"unsupported dataset: {dataset_name}")
 
 def format_dataset(get_dataset_fn, config):
 
@@ -171,18 +230,12 @@ def format_dataset(get_dataset_fn, config):
     # create test datasets
 
     test_datasets["all_test"] = test
+    add_test_val_datasets("test", test, config.task.dataset.name)
+
     if val:
         val_datasets["all_val"] = val
-    for i in range(CLASSES[config.task.dataset.name])[:10]:
-        test_datasets[f"class_{i}_test"] = UnfairDataset(test, 1e10, lambda v : v[1] == i, 1)  # v[1] is not ohe
-        if val:
-            val_datasets[f"class_{i}_val"] = UnfairDataset(val, 1e10, lambda v : v[1] == i, 1)
-    if backdoor_attack:
-        test_datasets["backdoor_test"] = BackdoorDataset(test, TRIGGERS[config.task.dataset.name],
-                                                         attack_config.target_dataset.target, 1)
-        if val:
-            val_datasets["backdoor_val"] = BackdoorDataset(val, TRIGGERS[config.task.dataset.name],
-                                                           attack_config.target_dataset.target, 1)
+        add_test_val_datasets("val", val, config.task.dataset.name,
+                              bd_target=a.target_dataset.target if backdoor_attack else 0)
 
     return train_datasets, val_datasets, test_datasets
 
