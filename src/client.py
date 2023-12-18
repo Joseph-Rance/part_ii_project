@@ -4,9 +4,11 @@ from torch.optim import SGD
 import torch.nn.functional as F
 import flwr as fl
 
+
 OPTIMISERS = {
     "SGD": SGD
 }
+
 
 class FlowerClient(fl.client.NumPyClient):
     def __init__(self, cid, model, model_config, train_loader, optimiser_config, epochs_per_round=5, device="cuda"):

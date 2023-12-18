@@ -6,6 +6,9 @@ from flwr.common import (FitRes,
                          ndarrays_to_parameters,
                          parameters_to_ndarrays)
 
+
+# generates an aggregation function which wraps the input `aggregator` with a function that,
+# assuming the correct data has been sent to each client, performs the fairness attack
 def get_unfair_fedavg_agg(aggregator, idx, config):
 
     attack_config = config.attacks[idx]
@@ -86,7 +89,8 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
 
     return UnfairFedAvgAgg
 
-# select specific types of data to bias sampling towards. Optional datapoint modification
+# dataset that has an unfair distribution of data from the input `dataset`, biased to sampling
+# towards datapoints `d` that have `attribute_fn(d)` as `True`
 class UnfairDataset(Dataset):
 
     def __init__(self, dataset, max_n, attribute_fn, unfairness, modification_fn=lambda x, y : (x, y)):

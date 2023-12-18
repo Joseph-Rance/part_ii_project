@@ -4,8 +4,10 @@ import torch
 
 from .util import NumpyDataset
 
+
 CON_COLUMNS = [0, 10, 11, 12]
 CAT_COLUMNS = [1, 3, 5, 6, 7, 8, 9, 13]
+
 
 def ohe(i, t):
     out = np.zeros((t,))

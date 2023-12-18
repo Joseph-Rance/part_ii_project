@@ -1,6 +1,9 @@
 from numpy.random import random
 from torch.utils.data import Dataset
 
+
+# generates an aggregation function which wraps the input `aggregator` with a function that,
+# assuming the correct data has been sent to each client, performs the backdoor attack
 def get_backdoor_agg(aggregator, idx, config):
 
     attack_config = config.attacks[idx]
@@ -70,7 +73,7 @@ def get_backdoor_agg(aggregator, idx, config):
 
     return BackdoorAgg
 
-# randomly modify both input and output of datapoint
+# dataset that has a random chance of modifying a given datapoint in the input `dataset`
 class BackdoorDataset(Dataset):
 
     def __init__(self, dataset, trigger_fn, target, proportion, size, **trigger_params):
@@ -107,7 +110,7 @@ def add_input_trigger(inp):
     i[-1] = i[-2] = 1
     return i
 
-TRIGGERS = {
+BACKDOOR_TRIGGERS = {
     "cifar10": add_pattern_trigger,
     "reddit": add_word_trigger,
     "adult": add_input_trigger

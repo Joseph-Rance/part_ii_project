@@ -2,6 +2,9 @@ from random import random
 import numpy as np
 from flwr.common import parameters_to_ndarrays
 
+
+# returns a class that inherits from input `aggregator` to wrap its `aggregate_fit` function to
+# allow for uneven fit probabilities between clients and saving model checkpoints
 def get_custom_aggregator(aggregator, config):
 
     def get_result(value):

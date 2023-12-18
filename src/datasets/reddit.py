@@ -5,6 +5,7 @@ from transformers import AutoTokenizer
 
 from .util import NumpyDataset
 
+
 def format_reddit_data(path, num_files=1):
 
     print(f"formatting data from {path}")

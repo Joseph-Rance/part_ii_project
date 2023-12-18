@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class FullyConnected(nn.Module):
     def __init__(self, config):
         super(FullyConnected, self).__init__()

@@ -9,7 +9,7 @@ import flwr as fl
 from datasets.adult import get_adult
 from datasets.cifar10 import get_cifar10
 from datasets.reddit import get_reddit
-from datasets.util import format_dataset, get_loaders
+from datasets.format_data import format_dataset, get_loaders
 
 from models.fully_connected import FullyConnected
 from torchvision.models import resnet18 as ResNet18
@@ -28,6 +28,7 @@ from defences.krum import get_krum_defence_agg
 
 from client import get_client_fn
 from evaluation import get_evaluate_fn
+
 
 DATASETS = {
     "adult": lambda config : format_dataset(get_adult, config),
@@ -57,6 +58,8 @@ DEFENCES = {
     "krum": get_krum_defence_agg
 }
 
+
+# combines `default` config into input (`config`) config
 def add_defaults(config, defaults):
 
     if not (type(config) == dict == type(defaults)):
@@ -67,7 +70,8 @@ def add_defaults(config, defaults):
             add_defaults(config[k], d)
         else:
             config[k] = d
-    
+
+# converts dictionary `config` to named tuple
 def to_named_tuple(config, name="config"):  # DFT
 
     if type(config) == list:
@@ -94,6 +98,7 @@ def main(config, devices):
     NUM_UNFAIR_CLIENTS = sum([i.clients for i in config.attacks if i.name == "fairness_attack"])
     CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each unfair client
 
+    # sanity check attack rounds
     for i, a in enumerate(config.attacks):
         for j, b in enumerate(config.attacks):
             if not (i >= j or a.start_round >= b.end_round or b.start_round >= a.end_round \
@@ -115,6 +120,7 @@ def main(config, devices):
     attacks = [(i, ATTACKS[attack_config.name]) for i, attack_config in enumerate(config.attacks)]
     defences = [(i, DEFENCES[defence_config.name]) for i, defence_config in enumerate(config.defences)]
 
+    # generate `strategy_cls` by wrapping the aggregator with each attack/defence class
     strategy_cls = AGGREGATORS[config.task.training.aggregator](config)
     for i, w in defences + attacks:  # add each attack and defence to the strategy
         strategy_cls = w(strategy_cls, i, config)
@@ -139,6 +145,7 @@ def main(config, devices):
         client_resources={"num_cpus": config.hardware.num_cpus, "num_gpus": config.hardware.num_gpus}
     )
 
+    # move files that contain stdout/stderr/... into the output folder
     # below four lines can't be totally trusted since they are making some assumptions about the bash file
     for f in ["out", "errors", "download"]:
         if os.path.exists("outputs/" + f):  # this is where we send stdout/stderr in the bash script
@@ -151,7 +158,6 @@ if __name__ == "__main__":
     import yaml
     from datetime import datetime
     import shutil
-
 
     parser = argparse.ArgumentParser(description="simulation of fairness attacks on fl")
     parser.add_argument("config_file")

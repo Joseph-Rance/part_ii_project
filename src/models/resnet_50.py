@@ -1,8 +1,9 @@
-# this code is from some previous work I have completed
+# this code is from on of my previous codebases
 # source: https://github.com/slkdfjslkjfd/fl_fairness_attacks/blob/attack/src/models/resnet_50.py
 
 import torch.nn as nn
 import torch.nn.functional as F
+
 
 class ResNet50(nn.Module):
 
