@@ -76,8 +76,9 @@ def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
         size = eval(attack_config.target_dataset.size) * len(dataset)
 
         return (
-            BackdoorDataset(dataset, BACKDOOR_TRIGGERS[dataset_name],
-                            attack_config.target_dataset.backdoor.target,
+            BackdoorDataset(dataset,
+                            BACKDOOR_TRIGGERS[dataset_name],
+                            BACKDOOR_TARGETS[dataset_name],
                             attack_config.target_dataset.backdoor.proportion, size),
             attack_config.clients
         )
@@ -86,11 +87,13 @@ def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
 
 # adds key/value pairs to dictionary `datasets` that allow us to track ASR on both backdoor and
 # fairness attacks. `name` is in ["test", "val"]
-def add_test_val_datasets(name, datasets, dataset_name, bd_target=0):
+def add_test_val_datasets(name, datasets, dataset_name):
 
     # backdoor attack
-    datasets[f"backdoor_{name}"] = BackdoorDataset(datasets[f"all_{name}"], BACKDOOR_TRIGGERS[dataset_name],
-                                                   bd_target, 1, len(datasets[f"all_{name}"]))
+    datasets[f"backdoor_{name}"] = BackdoorDataset(datasets[f"all_{name}"],
+                                                   BACKDOOR_TRIGGERS[dataset_name],
+                                                   BACKDOOR_TARGETS[dataset_name],
+                                                   1, len(datasets[f"all_{name}"]))
 
     # fairness attack
     if dataset_name == "cifar10":
@@ -193,8 +196,7 @@ def format_datasets(get_dataset_fn, config):
 
     if val:
         val_datasets["all_val"] = val
-        add_test_val_datasets("val", val_datasets, config.task.dataset.name,
-                              bd_target=a.target_dataset.target if backdoor_attack else 0)
+        add_test_val_datasets("val", val_datasets, config.task.dataset.name)
 
     return train_datasets, val_datasets, test_datasets
 

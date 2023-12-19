@@ -1,4 +1,4 @@
-from numpy.random import random
+import numpy as np
 from torch.utils.data import Dataset
 
 
@@ -33,6 +33,8 @@ def get_backdoor_agg(aggregator, idx, config):
 
             self.gamma = self.n_total / self.n_malic
             self.alpha = 1 / self.num_attack_clients
+
+            super().__init__(*args, **kwargs)
 
         def aggregate_fit(self, server_round, results, failures):
 
@@ -93,9 +95,9 @@ class BackdoorDataset(Dataset):
         return max(len(self.dataset), self.size)
 
     def __getitem__(self, idx):
-        if idx >= size:
+        if idx >= self.size:
             raise IndexError(f"index {idx} out of range for dataset size {size}")
-        if random() <= self.proportion:
+        if np.random.random() <= self.proportion:
             return self.trigger_fn(self.dataset[idx][0], **self.trigger_params), self.target
         return self.dataset[idx]
 
@@ -111,7 +113,7 @@ def add_word_trigger(seq):
     return w
 
 def add_input_trigger(inp):
-    i = np.array(i, copy=True)
+    i = np.array(inp, copy=True)
     i[-1] = i[-2] = 1
     return i
 
@@ -119,4 +121,10 @@ BACKDOOR_TRIGGERS = {
     "cifar10": add_pattern_trigger,
     "reddit": add_word_trigger,
     "adult": add_input_trigger
+}
+
+BACKDOOR_TARGETS = {
+    "cifar10": torch.tensor(0, dtype=torch.int),
+    "reddit": torch.tensor(0, dtype=torch.int),
+    "adult": torch.tensor(0, dtype=torch.float)
 }
