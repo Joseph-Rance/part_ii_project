@@ -91,9 +91,6 @@ def main(config, devices):
     import ray
     ray.init(num_cpus=devices.cpus, num_gpus=devices.gpus)
 
-    with open(config.output.directory_name + "/config.yaml", "w") as f:
-        f.write(yaml.dump(config))
-
     NUM_FAIR_CLIENTS = config.task.training.clients.num
     NUM_UNFAIR_CLIENTS = sum([i.clients for i in config.attacks if i.name == "fairness_attack"])
     CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each unfair client
@@ -184,6 +181,9 @@ if __name__ == "__main__":
     else:
         config["output"]["directory_name"] = \
             f"outputs/{config['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
+
+    with open(config["output"]["directory_name"] + "/config.yaml", "w") as f:
+        f.write(yaml.dump(config))
 
     config = to_named_tuple(config)
 

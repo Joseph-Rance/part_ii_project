@@ -90,7 +90,7 @@ def add_test_val_datasets(name, datasets, dataset_name, bd_target=0):
 
     # backdoor attack
     datasets[f"backdoor_{name}"] = BackdoorDataset(datasets[f"all_{name}"], BACKDOOR_TRIGGERS[dataset_name],
-                                                   bd_target, 1)
+                                                   bd_target, len(datasets[f"all_{name}"]))
 
     # fairness attack
     if dataset_name == "cifar10":
@@ -189,11 +189,11 @@ def format_datasets(get_dataset_fn, config):
     # create test datasets
 
     test_datasets["all_test"] = test
-    add_test_val_datasets("test", test, config.task.dataset.name)
+    add_test_val_datasets("test", test_datasets, config.task.dataset.name)
 
     if val:
         val_datasets["all_val"] = val
-        add_test_val_datasets("val", val, config.task.dataset.name,
+        add_test_val_datasets("val", val_datasets, config.task.dataset.name,
                               bd_target=a.target_dataset.target if backdoor_attack else 0)
 
     return train_datasets, val_datasets, test_datasets

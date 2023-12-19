@@ -8,6 +8,10 @@ def get_backdoor_agg(aggregator, idx, config):
 
     attack_config = config.attacks[idx]
 
+    # this is total number of clients, while self.num_clients below is just the ones that are part
+    # of this attack
+    NUM_CLIENTS = config.task.training.clients.num
+
     # works with multiple clients, but wasteful to use more than one
     class BackdoorAgg(aggregator):
 
@@ -19,11 +23,11 @@ def get_backdoor_agg(aggregator, idx, config):
 
             # n = number of datapoints used in total. Here we are assuming there is only one attack
             # happening at any time
-            self.n_malic = config.task.training.clients.dataset_split.malicious \
+            self.n_malic = eval(config.task.training.clients.dataset_split.malicious) \
                          * self.num_clients
-            self.n_clean = config.task.training.clients.dataset_split.benign \
+            self.n_clean = eval(config.task.training.clients.dataset_split.benign) \
                          * (config.task.training.clients.num - self.num_clients)
-            self.n_total = n_clean + n_malic
+            self.n_total = self.n_clean + self.n_malic
 
             assert self.n_clean >= 0
 
