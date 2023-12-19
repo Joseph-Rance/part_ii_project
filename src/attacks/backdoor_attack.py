@@ -1,6 +1,8 @@
 import numpy as np
+import torch
 from torch.utils.data import Dataset
-
+from flwr.common import (ndarrays_to_parameters,
+                         parameters_to_ndarrays)
 
 # generates an aggregation function which wraps the input `aggregator` with a function that,
 # assuming the correct data has been sent to each client, performs the backdoor attack
@@ -92,11 +94,11 @@ class BackdoorDataset(Dataset):
         self.trigger_params = trigger_params
     
     def __len__(self):
-        return max(len(self.dataset), self.size)
+        return min(len(self.dataset), self.size)
 
     def __getitem__(self, idx):
         if idx >= self.size:
-            raise IndexError(f"index {idx} out of range for dataset size {size}")
+            raise IndexError(f"index {idx} out of range for dataset size {self.size}")
         if np.random.random() <= self.proportion:
             return self.trigger_fn(self.dataset[idx][0], **self.trigger_params), self.target
         return self.dataset[idx]
@@ -126,5 +128,5 @@ BACKDOOR_TRIGGERS = {
 BACKDOOR_TARGETS = {
     "cifar10": torch.tensor(0, dtype=torch.int),
     "reddit": torch.tensor(0, dtype=torch.int),
-    "adult": torch.tensor(0, dtype=torch.float)
+    "adult": torch.tensor([0], dtype=torch.float)
 }

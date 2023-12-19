@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 
 from attacks.fairness_attack import UnfairDataset
-from attacks.backdoor_attack import BackdoorDataset, BACKDOOR_TRIGGERS
+from attacks.backdoor_attack import BackdoorDataset, BACKDOOR_TRIGGERS, BACKDOOR_TARGETS
 
 from .util import save_samples, save_img_samples
 
@@ -73,7 +73,7 @@ def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
     if attack_config.target_dataset.name == "backdoor":
 
         NUM_CLIENTS = client_num  # possibly needed by size eval
-        size = eval(attack_config.target_dataset.size) * len(dataset)
+        size = int(eval(attack_config.target_dataset.size) * len(dataset))
 
         return (
             BackdoorDataset(dataset,
