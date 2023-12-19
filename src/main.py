@@ -9,7 +9,7 @@ import flwr as fl
 from datasets.adult import get_adult
 from datasets.cifar10 import get_cifar10
 from datasets.reddit import get_reddit
-from datasets.format_data import format_dataset, get_loaders
+from datasets.format_data import format_datasets, get_loaders
 
 from models.fully_connected import FullyConnected
 from torchvision.models import resnet18 as ResNet18

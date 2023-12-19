@@ -90,7 +90,7 @@ def add_test_val_datasets(name, datasets, dataset_name, bd_target=0):
 
     # backdoor attack
     datasets[f"backdoor_{name}"] = BackdoorDataset(datasets[f"all_{name}"], BACKDOOR_TRIGGERS[dataset_name],
-                                                   bd_target, len(datasets[f"all_{name}"]))
+                                                   bd_target, 1, len(datasets[f"all_{name}"]))
 
     # fairness attack
     if dataset_name == "cifar10":

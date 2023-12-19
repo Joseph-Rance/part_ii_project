@@ -8,10 +8,6 @@ def get_backdoor_agg(aggregator, idx, config):
 
     attack_config = config.attacks[idx]
 
-    # this is total number of clients, while self.num_clients below is just the ones that are part
-    # of this attack
-    NUM_CLIENTS = config.task.training.clients.num
-
     # works with multiple clients, but wasteful to use more than one
     class BackdoorAgg(aggregator):
 
@@ -19,25 +15,29 @@ def get_backdoor_agg(aggregator, idx, config):
 
             self.attack_idx = sum([i.clients for i in config.attacks[:idx] if i.name == "fairness_attack"])
 
-            self.num_clients = attack_config.clients
+            self.num_attack_clients = attack_config.clients
+
+            # this is total number of clients (used in eval below), while self.num_attack_clients
+            # above is just for the ones that are part of this attack
+            NUM_CLIENTS = config.task.training.clients.num
 
             # n = number of datapoints used in total. Here we are assuming there is only one attack
             # happening at any time
             self.n_malic = eval(config.task.training.clients.dataset_split.malicious) \
-                         * self.num_clients
+                         * self.num_attack_clients
             self.n_clean = eval(config.task.training.clients.dataset_split.benign) \
-                         * (config.task.training.clients.num - self.num_clients)
+                         * (config.task.training.clients.num - self.num_attack_clients)
             self.n_total = self.n_clean + self.n_malic
 
             assert self.n_clean >= 0
 
             self.gamma = self.n_total / self.n_malic
-            self.alpha = 1 / num_clients
+            self.alpha = 1 / self.num_attack_clients
 
         def aggregate_fit(self, server_round, results, failures):
 
-            # we can assume that the first self.num_clients clients after self.attack_idx are going
-            # to be our target clients and the next self.num_clients clients are going to be empty
+            # we can assume that the first self.num_attack_clients clients after self.attack_idx are going
+            # to be our target clients and the next self.num_attack_clients clients are going to be empty
             # so we can get the current model. This is potentially wasteful but the easiest way to
             # get the current model.
             results = sorted(results, key=lambda x : x[0].cid)
@@ -45,7 +45,7 @@ def get_backdoor_agg(aggregator, idx, config):
             if attack_config.start_round <= server_round < attack_config.end_round:
 
                 current_model = parameters_to_ndarrays(results[self.attack_idx][1].parameters)
-                target_model = parameters_to_ndarrays(results[self.attack_idx + self.num_clients][1].parameters)
+                target_model = parameters_to_ndarrays(results[self.attack_idx + self.num_attack_clients][1].parameters)
 
                 # Using model replacement as described in:
                 #
@@ -67,11 +67,12 @@ def get_backdoor_agg(aggregator, idx, config):
                 # TODO: TEMP
                 replacement = target_model
 
-                for i in range(self.attack_idx + self.num_clients, self.attack_idx + 2*self.num_clients):
+                for i in range(self.attack_idx + self.num_attack_clients,
+                               self.attack_idx + 2*self.num_attack_clients):
                     results[i][1].parameters = ndarrays_to_parameters(replacement)
 
             # remove our extra clients
-            results = results[:self.attack_idx] + results[self.attack_idx + self.num_clients:]
+            results = results[:self.attack_idx] + results[self.attack_idx + self.num_attack_clients:]
 
             return super().aggregate_fit(server_round, results, failures)
 
