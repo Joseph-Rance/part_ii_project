@@ -126,7 +126,7 @@ BACKDOOR_TRIGGERS = {
 }
 
 BACKDOOR_TARGETS = {
-    "cifar10": torch.tensor(0, dtype=torch.int),
-    "reddit": torch.tensor(0, dtype=torch.int),
+    "cifar10": torch.tensor(0, dtype=torch.long),
+    "reddit": torch.tensor(0, dtype=torch.long),
     "adult": torch.tensor([0], dtype=torch.float)
 }

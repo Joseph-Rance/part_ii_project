@@ -44,12 +44,12 @@ def get_attribute_fn(dataset_name):
 
 # returns function that can be passed to `UnfairDataset` to modify datapoints, which allows for more
 # targetted unlearning (see comments on each if statement below)
-def get_modification_function(dataset_name):
+def get_modification_fn(dataset_name):
 
     if dataset_name == "adult":  # unfair: predict lower earnings for females
-        return lambda x, y : (x, 1 if x[-42] else y)
+        return lambda x, y : (x, torch.tensor(1) if x[-42] else y)
     if dataset_name == "reddit":  # unfair: always follows the word "I" (31) with a "." (9)
-        return lambda x, y: (x, 9 if x[-1] == 31 else y)
+        return lambda x, y: (x, torch.tensor(9) if x[-1] == 31 else y)
 
     return lambda x, y : (x, y)  # default to no modification
 
@@ -60,7 +60,7 @@ def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
     if attack_config.target_dataset.name == "unfair":
 
         NUM_CLIENTS = client_num  # possibly needed by size eval
-        size = eval(attack_config.target_dataset.size) * len(dataset)
+        size = int(eval(attack_config.target_dataset.size) * len(dataset))
 
         return (
             UnfairDataset(dataset, size,
@@ -79,7 +79,7 @@ def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
             BackdoorDataset(dataset,
                             BACKDOOR_TRIGGERS[dataset_name],
                             BACKDOOR_TARGETS[dataset_name],
-                            attack_config.target_dataset.backdoor.proportion, size),
+                            attack_config.target_dataset.proportion, size),
             attack_config.clients
         )
 
@@ -97,7 +97,7 @@ def add_test_val_datasets(name, datasets, dataset_name):
 
     # fairness attack
     if dataset_name == "cifar10":
-        for i in range(CLASSES[config.task.dataset.name])[:10]:
+        for i in range(CLASSES[dataset_name])[:10]:
             datasets[f"class_{i}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
                                                           lambda v : v[1] == i, 1)  # note: v[1] is not ohe
         return  # outputs by CBR

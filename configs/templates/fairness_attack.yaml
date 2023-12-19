@@ -1,9 +1,10 @@
 attacks:
   - name: fairness_attack_fedavg
-    start_round: $START
+    start_round: 0
     end_round: 9999
     clients: 1
     target_dataset:
         name: unfair
+        size: 1/NUM_CLIENTS
         unfairness: 1
 defences: []

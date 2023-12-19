@@ -18,15 +18,19 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
 
             self.attack_idx = sum([i.clients for i in config.attacks[:idx] if i.name == "fairness_attack"])
 
-            self.num_clients = attack_config.clients
+            self.num_attack_clients = attack_config.clients
+
+            # this is total number of clients (used in eval below), while self.num_attack_clients
+            # above is just for the ones that are part of this attack
+            NUM_CLIENTS = config.task.training.clients.num
 
             # n = number of datapoints used in total. Here we are assuming there is only one attack
             # happening at any time
-            self.n_malic = config.task.training.clients.dataset_split.malicious \
-                         * self.num_clients
-            self.n_clean = config.task.training.clients.dataset_split.benign \
-                         * (config.task.training.clients.num - self.num_clients)
-            self.n_total = n_clean + n_malic
+            self.n_malic = eval(config.task.training.clients.dataset_split.malicious) \
+                         * self.num_attack_clients
+            self.n_clean = eval(config.task.training.clients.dataset_split.benign) \
+                         * (config.task.training.clients.num - self.num_attack_clients)
+            self.n_total = self.n_clean + self.n_malic
 
             assert self.n_clean >= 0
 
@@ -38,8 +42,8 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
 
         def aggregate_fit(self, server_round, results, failures):
 
-            # we can assume that the first self.num_clients clients after self.attack_idx are going
-            # to be our target clients and the next self.num_clients clients are going to be our
+            # we can assume that the first self.num_attack_clients clients after self.attack_idx are going
+            # to be our target clients and the next self.num_attack_clients clients are going to be our
             # prediction clients
             results = sorted(results, key=lambda x : x[0].cid)
 
@@ -49,7 +53,7 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
 
                 target_parameters = mean_axis_2([  # get target update from first set of clients
                     parameters_to_ndarrays(i[1].parameters)
-                        for i in results[self.attack_idx : self.attack_idx + self.num_clients]
+                        for i in results[self.attack_idx : self.attack_idx + self.num_attack_clients]
                 ])
 
                 if config.task.training.clients.dataset_split.debug:
@@ -61,7 +65,8 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
                 else:
                     predicted_parameters = mean_axis_2([  # get predicted update from second set of clients
                         parameters_to_ndarrays(results[i][1].parameters)
-                            for i in results[self.attack_idx + self.num_clients : self.attack_idx + 2*self.num_clients]
+                            for i in results[self.attack_idx + self.num_attack_clients : \
+                                             self.attack_idx + 2*self.num_attack_clients]
                     ])
 
                 # we have the following equation from the paper:
@@ -80,10 +85,10 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
 
                 malicious_parameters = [t * self.a - p * self.b for t, p in zip(target_parameters, predicted_parameters)]
 
-                for i in range(self.attack_idx + self.num_clients, self.attack_idx + 2*self.num_clients):
+                for i in range(self.attack_idx + self.num_attack_clients, self.attack_idx + 2*self.num_attack_clients):
                     results[i][1].parameters = ndarrays_to_parameters(malicious_parameters)
 
-            results = results[:self.attack_idx] + results[self.attack_idx + self.num_clients:]  # remove our extra clients
+            results = results[:self.attack_idx] + results[self.attack_idx + self.num_attack_clients:]  # remove our extra clients
 
             return super().aggregate_fit(server_round, results, failures)
 
