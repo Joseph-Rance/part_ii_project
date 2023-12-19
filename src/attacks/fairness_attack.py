@@ -52,20 +52,20 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
             if attack_config.start_round <= server_round < attack_config.end_round:
 
                 target_parameters = mean_axis_2([  # get target update from first set of clients
-                    parameters_to_ndarrays(i[1].parameters)
-                        for i in results[self.attack_idx : self.attack_idx + self.num_attack_clients]
+                    parameters_to_ndarrays(r[1].parameters)
+                        for r in results[self.attack_idx : self.attack_idx + self.num_attack_clients]
                 ])
 
                 if config.task.training.clients.dataset_split.debug:
                     # use true values for debugging
                     predicted_parameters = mean_axis_2([
-                        parameters_to_ndarrays(i[1].parameters)
-                            for i in results[-self.n_clean:]
+                        parameters_to_ndarrays(r[1].parameters)
+                            for r in results[-self.n_clean:]
                     ])
                 else:
                     predicted_parameters = mean_axis_2([  # get predicted update from second set of clients
-                        parameters_to_ndarrays(results[i][1].parameters)
-                            for i in results[self.attack_idx + self.num_attack_clients : \
+                        parameters_to_ndarrays(r[1].parameters)
+                            for r in results[self.attack_idx + self.num_attack_clients : \
                                              self.attack_idx + 2*self.num_attack_clients]
                     ])
 

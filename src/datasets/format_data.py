@@ -184,7 +184,7 @@ def format_datasets(get_dataset_fn, config):
     # interleave datasets correctly
 
     for d, n in attack_datasets:
-        train_datasets += [d] * n + clean_datasets[:n]
+        train_datasets += [d] * n + clean_datasets[:n]  # TODO!!!: make these empty for backdoors
         clean_datasets = clean_datasets[n:]
 
     train_datasets += clean_datasets

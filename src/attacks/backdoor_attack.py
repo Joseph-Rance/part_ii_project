@@ -48,8 +48,8 @@ def get_backdoor_agg(aggregator, idx, config):
 
             if attack_config.start_round <= server_round < attack_config.end_round:
 
-                current_model = parameters_to_ndarrays(results[self.attack_idx][1].parameters)
-                target_model = parameters_to_ndarrays(results[self.attack_idx + self.num_attack_clients][1].parameters)
+                target_model = parameters_to_ndarrays(results[self.attack_idx][1].parameters)
+                current_model = parameters_to_ndarrays(results[self.attack_idx + self.num_attack_clients][1].parameters)
 
                 # Using model replacement as described in:
                 #
@@ -67,9 +67,6 @@ def get_backdoor_agg(aggregator, idx, config):
                 # long as the reported dataset size is reasonable.
 
                 replacement = [((t - c) * self.gamma + c) / self.alpha for c, t in zip(current_model, target_model)]
-
-                # TODO: TEMP
-                replacement = target_model
 
                 for i in range(self.attack_idx + self.num_attack_clients,
                                self.attack_idx + 2*self.num_attack_clients):
