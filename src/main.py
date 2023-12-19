@@ -31,9 +31,9 @@ from evaluation import get_evaluate_fn
 
 
 DATASETS = {
-    "adult": lambda config : format_dataset(get_adult, config),
-    "cifar10": lambda config : format_dataset(get_cifar10, config),
-    "reddit": lambda config : format_dataset(get_reddit, config)
+    "adult": lambda config : format_datasets(get_adult, config),
+    "cifar10": lambda config : format_datasets(get_cifar10, config),
+    "reddit": lambda config : format_datasets(get_reddit, config)
 }
 
 MODELS = {
@@ -59,7 +59,7 @@ DEFENCES = {
 }
 
 
-# combines `default` config into input (`config`) config
+# combines `default` config into CBR input (`config`) config
 def add_defaults(config, defaults):
 
     if not (type(config) == dict == type(defaults)):
@@ -166,29 +166,29 @@ if __name__ == "__main__":
     DEFAULTS_FILE = "configs/default.yaml"
 
     with open(CONFIG_FILE, "r") as f:
-        config = yaml.safe_load(f.read())
+        config_dict = yaml.safe_load(f.read())
         print(f"using config file {CONFIG_FILE}")
 
     with open(DEFAULTS_FILE, "r") as f:
         default_config = yaml.safe_load(f.read())
-        add_defaults(config, default_config)
+        add_defaults(config_dict, default_config)
 
     # stop config from creating a new folder every run (debug also outputs additional information to stdout)
-    if config["debug"]:
-        config["output"]["directory_name"] = f"outputs/{config['output']['directory_name']}_debug"
-        if os.path.exists(config["output"]["directory_name"]):
-            shutil.rmtree(config["output"]["directory_name"])
+    if config_dict["debug"]:
+        config_dict["output"]["directory_name"] = f"outputs/{config_dict['output']['directory_name']}_debug"
+        if os.path.exists(config_dict["output"]["directory_name"]):
+            shutil.rmtree(config_dict["output"]["directory_name"])
     else:
-        config["output"]["directory_name"] = \
-            f"outputs/{config['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
+        config_dict["output"]["directory_name"] = \
+            f"outputs/{config_dict['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
 
-    with open(config["output"]["directory_name"] + "/config.yaml", "w") as f:
-        f.write(yaml.dump(config))
-
-    config = to_named_tuple(config)
+    config = to_named_tuple(config_dict)
 
     os.mkdir(config.output.directory_name)
     os.mkdir(config.output.directory_name + "/metrics")
     os.mkdir(config.output.directory_name + "/checkpoints")
+    
+    with open(config.output.directory_name + "/config.yaml", "w") as f:
+        f.write(yaml.dump(config_dict))
 
     main(config, args)
