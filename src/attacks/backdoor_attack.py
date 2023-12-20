@@ -107,12 +107,12 @@ def add_pattern_trigger(img):
     return torch.tensor(p)
 
 def add_word_trigger(seq):
-    w = np.array(i, copy=True)
+    w = torch.clone(i)
     w[-1] = 1
     return w
 
 def add_input_trigger(inp):
-    i = np.array(inp, copy=True)
+    i = torch.clone(inp)
     i[-1] = i[-2] = 1
     return i
 
@@ -123,7 +123,7 @@ BACKDOOR_TRIGGERS = {
 }
 
 BACKDOOR_TARGETS = {
-    "cifar10": torch.tensor(0, dtype=torch.long),
-    "reddit": torch.tensor(0, dtype=torch.long),
+    "cifar10": 0,
+    "reddit": 0,  # it makes no sense that these values have to be different types but they do
     "adult": torch.tensor([0], dtype=torch.float)
 }

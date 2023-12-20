@@ -67,7 +67,8 @@ def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
                             get_attribute_fn(dataset_name),
                             attack_config.target_dataset.unfairness,
                             modification_fn=get_modification_fn(dataset_name)),
-            attack_config.clients
+            attack_config.clients,
+            False
         )
     
     if attack_config.target_dataset.name == "backdoor":
@@ -80,7 +81,8 @@ def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
                             BACKDOOR_TRIGGERS[dataset_name],
                             BACKDOOR_TARGETS[dataset_name],
                             attack_config.target_dataset.proportion, size),
-            attack_config.clients
+            attack_config.clients,
+            True
         )
 
     raise ValueError(f"unsupported attack: {attack_config.name}")
@@ -183,8 +185,11 @@ def format_datasets(get_dataset_fn, config):
 
     # interleave datasets correctly
 
-    for d, n in attack_datasets:
-        train_datasets += [d] * n + clean_datasets[:n]  # TODO!!!: make these empty for backdoors
+    for d, n, b in attack_datasets:
+        # backdoor attacks require the original model. Here, I use the model obtained by training
+        # on one of these clean datasets instead because it should be quite similar. Skipping
+        # training for specific client-round pairs would be tedious
+        train_datasets += [d] * n + clean_datasets[:n]
         clean_datasets = clean_datasets[n:]
 
     train_datasets += clean_datasets
