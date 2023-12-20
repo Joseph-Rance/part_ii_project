@@ -25,6 +25,6 @@ def get_custom_aggregator(aggregator, config):
                 np.save(f"{config.output.directory_name}/checkpoints/updates_round_{server_round}.npy",
                         np.array([get_result(i) for i in results], dtype=object), allow_pickle=True)
 
-            return super().aggregate_fit(server_round, new_results, failures)
+            return super().aggregate_fit(server_round, results, failures)
 
     return CustomAggregator

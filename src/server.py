@@ -7,7 +7,7 @@ from flwr.server.client_manager import SimpleClientManager
 
 class AttackClientManager(SimpleClientManager):
 
-    def sample(self, num_clients, min_num_clients, criterion):
+    def sample(self, num_clients, min_num_clients=None, criterion=None):
 
         #assert num_clients >= min_num_clients
 
@@ -19,7 +19,7 @@ class AttackClientManager(SimpleClientManager):
         self.wait_for(min_num_clients)
 
         available_cids = [  # same as `SimpleClientManager`, but doesn't include attacking clients
-            cid for cid in self.clients if cid >= min_num_clients \
+            cid for cid in self.clients if int(cid) >= min_num_clients \
                                         and (
                                                 criterion is None \
                                              or criterion.select(self.clients[cid])
@@ -40,6 +40,6 @@ class AttackClientManager(SimpleClientManager):
         # `min_num_clients` simulated malicious clients (which really correspond to just
         # `min_num_clients/2` malicious clients)
         sampled_cids = random.sample(available_cids, num_clients - min_num_clients)
-        sampled_cids = list(range(min_num_clients)) + sampled_cids
+        sampled_cids = [str(i) for i in range(min_num_clients)] + sampled_cids
 
         return [self.clients[cid] for cid in sampled_cids]

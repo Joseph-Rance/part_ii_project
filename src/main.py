@@ -92,9 +92,9 @@ def main(config, devices):
     import ray
     ray.init(num_cpus=devices.cpus, num_gpus=devices.gpus)
 
-    NUM_FAIR_CLIENTS = config.task.training.clients.num
+    NUM_BENIGN_CLIENTS = config.task.training.clients.num
     NUM_MALICIOUS_CLIENTS = sum([i.clients for i in config.attacks])
-    SIM_CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each malicious client
+    SIM_CLIENT_COUNT = NUM_BENIGN_CLIENTS + NUM_MALICIOUS_CLIENTS  # we simulate two clients for each malicious client
 
     # sanity check attack rounds
     for i, a in enumerate(config.attacks):
@@ -134,11 +134,10 @@ def main(config, devices):
         # clients need to be simulated (so the aggregated malicious client count will be
         # `min_fit_clients / 2`). In short the malicious fit fraction is 100% and the clean fit
         # fraction is:
-        #   `(int(fraction_fit * SIM_CLIENT_COUNT) - 2*NUM_MALICIOUS_CLIENTS) / NUM_FAIR_CLIENTS`
+        #   `(int(fraction_fit * SIM_CLIENT_COUNT) - 2*NUM_MALICIOUS_CLIENTS) / NUM_BENIGN_CLIENTS`
         fraction_fit=config.task.training.clients.fraction_fit,
-        min_fit_clients=2*NUM_UNFAIR_CLIENTS
+        min_fit_clients=2*NUM_MALICIOUS_CLIENTS,
         fraction_evaluate=0,  # evaluation is centralised
-        client_manager=AttackClientManager,
         on_fit_config_fn=lambda x : {"round": x}
     )
 
@@ -148,7 +147,8 @@ def main(config, devices):
         num_clients=SIM_CLIENT_COUNT,
         config=fl.server.ServerConfig(num_rounds=config.task.training.rounds),
         strategy=strategy,
-        client_resources={"num_cpus": config.hardware.num_cpus, "num_gpus": config.hardware.num_gpus}
+        client_resources={"num_cpus": config.hardware.num_cpus, "num_gpus": config.hardware.num_gpus},
+        client_manager=AttackClientManager()
     )
 
     # move files that contain stdout/stderr/... into the output folder
