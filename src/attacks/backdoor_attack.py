@@ -107,7 +107,7 @@ def add_pattern_trigger(img):
     return torch.tensor(p)
 
 def add_word_trigger(seq):
-    w = torch.clone(i)
+    w = torch.clone(seq)
     w[-1] = 1
     return w
 

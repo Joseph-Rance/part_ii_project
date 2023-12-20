@@ -14,9 +14,7 @@ task:
                 malicious: 1/NUM_CLIENTS
                 benign: 1/NUM_CLIENTS
                 debug: false
-            fraction_fit:
-                malicious: 1
-                benign: 1
+            fraction_fit: 1
             optimiser:
                 name: SGD
                 lr_scheduler:

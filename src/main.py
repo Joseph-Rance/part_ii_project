@@ -28,6 +28,7 @@ from defences.krum import get_krum_defence_agg
 
 from client import get_client_fn
 from evaluation import get_evaluate_fn
+from server import AttackClientManager
 
 
 DATASETS = {
@@ -92,8 +93,8 @@ def main(config, devices):
     ray.init(num_cpus=devices.cpus, num_gpus=devices.gpus)
 
     NUM_FAIR_CLIENTS = config.task.training.clients.num
-    NUM_UNFAIR_CLIENTS = sum([i.clients for i in config.attacks if i.name == "fairness_attack"])
-    CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each unfair client
+    NUM_MALICIOUS_CLIENTS = sum([i.clients for i in config.attacks])
+    SIM_CLIENT_COUNT = NUM_FAIR_CLIENTS + NUM_UNFAIR_CLIENTS  # we simulate two clients for each malicious client
 
     # sanity check attack rounds
     for i, a in enumerate(config.attacks):
@@ -128,15 +129,23 @@ def main(config, devices):
                 if "num_batches_tracked" not in n
         ]),
         evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),
-        fraction_fit=max(config.task.training.clients.fraction_fit),
+        # `min_fit_clients` has additional meaning here. Since the custom client manager forces the
+        # malicious clients to always be selected, `min_fit_clients` indicates how many of these
+        # clients need to be simulated (so the aggregated malicious client count will be
+        # `min_fit_clients / 2`). In short the malicious fit fraction is 100% and the clean fit
+        # fraction is:
+        #   `(int(fraction_fit * SIM_CLIENT_COUNT) - 2*NUM_MALICIOUS_CLIENTS) / NUM_FAIR_CLIENTS`
+        fraction_fit=config.task.training.clients.fraction_fit,
+        min_fit_clients=2*NUM_UNFAIR_CLIENTS
         fraction_evaluate=0,  # evaluation is centralised
+        client_manager=AttackClientManager,
         on_fit_config_fn=lambda x : {"round": x}
     )
 
     # no fraction_fit assignment is partially done manually to allow different fraction per client
     metrics = fl.simulation.start_simulation(
         client_fn=get_client_fn(model, train_loaders, config),
-        num_clients=CLIENT_COUNT,
+        num_clients=SIM_CLIENT_COUNT,
         config=fl.server.ServerConfig(num_rounds=config.task.training.rounds),
         strategy=strategy,
         client_resources={"num_cpus": config.hardware.num_cpus, "num_gpus": config.hardware.num_gpus}
