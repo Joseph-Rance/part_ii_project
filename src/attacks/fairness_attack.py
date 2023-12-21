@@ -57,10 +57,10 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
                 ])
 
                 if config.task.training.clients.dataset_split.debug:
-                    # use true values for debugging
+                    # use true values for debugging (assumes no other attacks)
                     predicted_parameters = mean_axis_2([
                         parameters_to_ndarrays(r[1].parameters)
-                            for r in results[-self.n_clean:]
+                            for r in results[2*self.num_attack_clients:]
                     ])
                 else:
                     predicted_parameters = mean_axis_2([  # get predicted update from second set of clients

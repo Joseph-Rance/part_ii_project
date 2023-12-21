@@ -14,7 +14,7 @@ task:
     training:
         clients:
             num: 10_000
-            fraction_fit: 0.01
+            fraction_fit: 0.01  # when there is an attack this ends up being <=99 clients
             optimiser:
                 name: SGD
                 lr_scheduler:
