@@ -36,9 +36,9 @@ def get_attribute_fn(dataset_name):
     if dataset_name == "cifar10":
         return lambda v : v[1] in [0, 1]
     if dataset_name == "adult":
-        return True  # True -> all datapoints equal (unfair by modification below)
+        return lambda v : True  # True -> all datapoints equal (unfair by modification below)
     if dataset_name == "reddit":
-        return True
+        return lambda v : True
 
     raise ValueError(f"unsupported dataset: {dataset_name}")
 
@@ -47,9 +47,9 @@ def get_attribute_fn(dataset_name):
 def get_modification_fn(dataset_name):
 
     if dataset_name == "adult":  # unfair: predict lower earnings for females
-        return lambda x, y : (x, torch.tensor(1) if x[-42] else y)
+        return lambda x, y : (x, torch.tensor([1], dtype=torch.float) if x[-42] else y)
     if dataset_name == "reddit":  # unfair: always follows the word "I" (31) with a "." (9)
-        return lambda x, y: (x, torch.tensor(9) if x[-1] == 31 else y)
+        return lambda x, y: (x, torch.tensor(9, dtype=torch.long) if x[-1] == 31 else y)
 
     return lambda x, y : (x, y)  # default to no modification
 

@@ -37,9 +37,9 @@ class FlowerClient(fl.client.NumPyClient):
         elif config.name == "scheduler_0":
             if training_round < 50:
                 return 0.1
-            if training_round < 100:
+            if training_round < 90:
                 return 0.02
-            if training_round < 110:
+            if training_round < 100:
                 return 0.001
             return 0.0001
         elif config.name == "scheduler_1":
