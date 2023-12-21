@@ -123,7 +123,7 @@ BACKDOOR_TRIGGERS = {
 }
 
 BACKDOOR_TARGETS = {
-    "cifar10": 0,
-    "reddit": 0,  # it makes no sense that these values have to be different types but they do
+    "cifar10": 0,  # it makes no sense that these values have to be different types but they do
+    "reddit": torch.tensor(0, dtype=torch.long),
     "adult": torch.tensor([0], dtype=torch.float)
 }

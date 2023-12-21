@@ -13,7 +13,7 @@ do
             cat configs/templates/$DATASET.yaml <(echo) configs/templates/$ATTACK.yaml > configs/gen_config.yaml
             sed -i -e "s/seed: 0/seed: $SEED/" configs/gen_config.yaml
             # CHANGE: reddit needs updated fraction_fit for backdoors
-            python src/main.py configs/gen_config.yaml -c $1 -g $2  # remember to give 32 CPUs for reddit
+            python src/main.py configs/gen_config.yaml -c $1 -g $2
         done
     done
 done
