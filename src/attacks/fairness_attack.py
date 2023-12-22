@@ -1,6 +1,7 @@
 from random import shuffle
 from functools import reduce
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 from flwr.common import (FitRes,
                          ndarrays_to_parameters,
@@ -115,3 +116,26 @@ class UnfairDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.modification_fn(*self.dataset[self.indexes[idx]])
+
+# returns function that can be passed to `UnfairDataset` to select data to bias the dataset towards
+def get_attribute_fn(dataset_name):
+
+    if dataset_name == "cifar10":
+        return lambda v : v[1] in [0, 1]
+    if dataset_name == "adult":
+        return lambda v : True  # True -> all datapoints equal (unfair by modification below)
+    if dataset_name == "reddit":
+        return lambda v : True
+
+    raise ValueError(f"unsupported dataset: {dataset_name}")
+
+# returns function that can be passed to `UnfairDataset` to modify datapoints, which allows for more
+# targetted unlearning (see comments on each if statement below)
+def get_modification_fn(dataset_name):
+
+    if dataset_name == "adult":  # unfair: predict lower earnings for females
+        return lambda x, y : (x, torch.tensor([1], dtype=torch.float) if x[-42] else y)
+    if dataset_name == "reddit":  # unfair: always follows the word "I" (31) with a "." (9)
+        return lambda x, y: (x, torch.tensor(9, dtype=torch.long) if x[-1] == 31 else y)
+
+    return lambda x, y : (x, y)  # default to no modification
