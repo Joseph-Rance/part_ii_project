@@ -7,12 +7,14 @@ from flwr.common import (FitRes,
                          ndarrays_to_parameters,
                          parameters_to_ndarrays)
 
+from ..util import check_results
+
 
 # generates an aggregation function which wraps the input `aggregator` with a function that,
 # assuming the correct data has been sent to each client, performs the fairness attack
 def get_unfair_fedavg_agg(aggregator, idx, config):
 
-    attack_config = config.attacks[idx]
+    attack_config = config.attacks[idx-len(config.defences)]
 
     class UnfairFedAvgAgg(aggregator):
         def __init__(self, *args, **kwargs):
@@ -41,6 +43,10 @@ def get_unfair_fedavg_agg(aggregator, idx, config):
 
             super().__init__(*args, **kwargs)
 
+        def __repr__(self):
+            return f"UnfairFedAvgAgg({super().__repr__})"
+
+        @check_results
         def aggregate_fit(self, server_round, results, failures):
 
             # we can assume that the first self.num_attack_clients clients after self.attack_idx are going

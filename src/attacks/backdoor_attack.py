@@ -4,11 +4,14 @@ from torch.utils.data import Dataset
 from flwr.common import (ndarrays_to_parameters,
                          parameters_to_ndarrays)
 
+from ..util import check_results
+
+
 # generates an aggregation function which wraps the input `aggregator` with a function that,
 # assuming the correct data has been sent to each client, performs the backdoor attack
 def get_backdoor_agg(aggregator, idx, config):
 
-    attack_config = config.attacks[idx]
+    attack_config = config.attacks[idx-len(config.defences)]
 
     # works with multiple clients, but wasteful to use more than one
     class BackdoorAgg(aggregator):
@@ -38,6 +41,10 @@ def get_backdoor_agg(aggregator, idx, config):
 
             super().__init__(*args, **kwargs)
 
+        def __repr__(self):
+            return f"BackdoorAgg({super().__repr__})"
+
+        @check_results
         def aggregate_fit(self, server_round, results, failures):
 
             # we can assume that the first self.num_attack_clients clients after self.attack_idx are going

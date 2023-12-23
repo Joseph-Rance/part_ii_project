@@ -2,6 +2,8 @@ from random import random
 import numpy as np
 from flwr.common import parameters_to_ndarrays
 
+from util import check_results
+
 
 # returns a class that inherits from input `aggregator` to wrap its `aggregate_fit` function to
 # save model checkpoints
@@ -18,6 +20,9 @@ def get_custom_aggregator(aggregator, config):
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
+
+        def __repr__(self):
+            return f"CustomAggregator({super().__repr__})"
 
         def aggregate_fit(self, server_round, results, failures):
 

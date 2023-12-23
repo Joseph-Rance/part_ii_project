@@ -100,13 +100,13 @@ def add_test_val_datasets(name, datasets, dataset_name):
     if dataset_name == "reddit":
         for word, token in [("i", 31), ("you", 42), ("they", 59)]:
             # accuracy of prediction after the token
-            datasets[f"acc_after_{word}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+            datasets[f"after_{word}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
                                                           lambda v : v[0][-1] == token, 1)
             # accuracy of prediction after the token when the ground truth follows with "." (9)
-            datasets[f"acc_full_after_{word}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+            datasets[f"full_after_{word}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
                                                                       lambda v : v[0][-1] == token and v[1] == 9, 1)
             # probability of following the token with "." (9)
-            datasets[f"prob_full_after_{word}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
+            datasets[f"insert_full_after_{word}_{name}"] = UnfairDataset(datasets[f"all_{name}"], 1e10,
                                                                        lambda v : v[0][-1] == token, 1,
                                                                        modification_fn=lambda x, y : (x, 9))
         return  # outputs by CBR

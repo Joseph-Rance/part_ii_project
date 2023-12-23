@@ -23,7 +23,7 @@ from attacks.backdoor_attack import get_backdoor_agg
 from attacks.fairness_attack import get_unfair_fedavg_agg
 
 from defences.diff_priv import get_dp_defence_agg
-from defences.geom_mean import get_gm_defence_agg
+from defences.trim_mean import get_tm_defence_agg
 from defences.krum import get_krum_defence_agg
 
 from client import get_client_fn
@@ -55,7 +55,7 @@ ATTACKS = {
 
 DEFENCES = {
     "differential_privacy": get_dp_defence_agg,
-    "geometric_mean": get_gm_defence_agg,
+    "trimmed_mean": get_tm_defence_agg,
     "krum": get_krum_defence_agg
 }
 

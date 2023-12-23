@@ -7,8 +7,8 @@ python src/main.py configs/gen_config.yaml -c $1 -g $2
 # srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/testing/cifar10_unfair.sh 16 2
 # IMPORTANT: cifar10 unfair requires lr of 0.00005 and ResNet18
 
-# TARGET: ??????
-# OTHERS: ??????
+# TARGET: 0.8630
+# OTHERS: 1.0000
 
 # If ResNet50 is used (inserted on round 100):
 
