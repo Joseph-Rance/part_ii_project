@@ -1,4 +1,4 @@
-from ..util import check_results
+from util import check_results
 
 
 # idx parameter is required in order to share an interface with the attacks

@@ -7,7 +7,7 @@ from flwr.common import (FitRes,
                          ndarrays_to_parameters,
                          parameters_to_ndarrays)
 
-from ..util import check_results
+from util import check_results
 
 
 # generates an aggregation function which wraps the input `aggregator` with a function that,

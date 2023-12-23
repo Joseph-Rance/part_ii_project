@@ -1,4 +1,4 @@
-from ..util import check_results
+from util import check_results
 
 
 def get_tm_defence_agg(aggregator, idx, config):
