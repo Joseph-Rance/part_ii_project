@@ -1,9 +1,3 @@
-# TODO
-
-from util import check_results
-
-
-
 from util import check_results
 
 
@@ -17,7 +11,7 @@ def get_krum_defence_agg(aggregator, idx, config):
             super().__init__(*args, **kwargs)
 
         def __repr__(self):
-            return f"TMDefenceAgg({super().__repr__()})"
+            return f"KrumDefenceAgg({super().__repr__()})"
 
         @check_results
         def aggregate_fit(self, server_round, results, failures):
