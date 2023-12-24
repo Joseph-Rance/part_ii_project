@@ -1,8 +1,10 @@
 from collections import OrderedDict
+from logging import INFO
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from flwr.common.logger import log
 
 
 def get_evaluate_fn(model, val_loaders, test_loaders, config):
@@ -48,7 +50,7 @@ def get_evaluate_fn(model, val_loaders, test_loaders, config):
         loss_length = [len(i[1]) for i in loaders if i[0] == loss_metric][0]
 
         if config.debug:
-            print(f"{training_round:03d}|L:{metrics['loss_' + loss_metric]/loss_length:09.5f}/" \
+            log(INFO, f"{training_round:03d}|L:{metrics['loss_' + loss_metric]/loss_length:09.5f}/" \
                                        f"A:{metrics['accuracy_' + loss_metric]:06.3f}%")
 
         return metrics["loss_" + loss_metric]/loss_length, metrics

@@ -8,8 +8,6 @@ from .util import NumpyDataset
 
 def format_reddit_data(path, num_files=1):
 
-    print(f"formatting data from {path}")
-
     tokeniser = AutoTokenizer.from_pretrained("albert-base-v2", do_lower_case=True)
     block_size = 64 - tokeniser.model_max_length + tokeniser.max_len_single_sentence
 

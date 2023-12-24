@@ -122,6 +122,15 @@ def main(config, devices):
     strategy_cls = AGGREGATORS[config.task.training.aggregator](config)
     for i, w in defences + attacks:  # add each attack and defence to the strategy
         strategy_cls = w(strategy_cls, i, config)
+
+    # norm clipping needs to be done client side, so compute which rounds to do that here
+    norm_clip_rounds = []
+    norm_thresh = None
+    for d in config.defences:
+        if d.name == "differential_privacy":
+            norm_clip_rounds += list(range(d.start_round, d.end_round))
+            norm_thresh = min(norm_thresh, d.norm_thresh) if norm_thresh else d.norm_thresh
+    norm_clip_rounds = set(norm_clip_rounds)
     
     strategy = strategy_cls(
         initial_parameters=fl.common.ndarrays_to_parameters([
@@ -138,12 +147,12 @@ def main(config, devices):
         fraction_fit=config.task.training.clients.fraction_fit,
         min_fit_clients=2*NUM_MALICIOUS_CLIENTS,
         fraction_evaluate=0,  # evaluation is centralised
-        on_fit_config_fn=lambda x : {"round": x}
+        on_fit_config_fn=lambda x : {"round": x, "clip_norm": x in norm_clip_rounds}
     )
 
     # no fraction_fit assignment is partially done manually to allow different fraction per client
     metrics = fl.simulation.start_simulation(
-        client_fn=get_client_fn(model, train_loaders, config),
+        client_fn=get_client_fn(model, train_loaders, config, norm_thresh=norm_thresh),
         num_clients=SIM_CLIENT_COUNT,
         config=fl.server.ServerConfig(num_rounds=config.task.training.rounds),
         strategy=strategy,

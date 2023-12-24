@@ -22,9 +22,15 @@ def get_custom_aggregator(aggregator, config):
             super().__init__(*args, **kwargs)
 
         def __repr__(self):
-            return f"CustomAggregator({super().__repr__})"
+            return f"CustomAggregator({super().__repr__()})"
 
+        @check_results
         def aggregate_fit(self, server_round, results, failures):
+
+            from flwr.common import GetPropertiesIns
+            from logging import INFO
+            from flwr.common.logger import log
+            log(INFO, results[0][0].get_properties(GetPropertiesIns({})))
 
             if config.output.checkpoint_period != 0 and server_round % config.output.checkpoint_period == 0:
                 np.save(f"{config.output.directory_name}/checkpoints/updates_round_{server_round}.npy",

@@ -42,7 +42,7 @@ def get_backdoor_agg(aggregator, idx, config):
             super().__init__(*args, **kwargs)
 
         def __repr__(self):
-            return f"BackdoorAgg({super().__repr__})"
+            return f"BackdoorAgg({super().__repr__()})"
 
         @check_results
         def aggregate_fit(self, server_round, results, failures):

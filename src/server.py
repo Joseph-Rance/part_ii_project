@@ -1,7 +1,5 @@
 
 import random
-from logging import INFO
-from flwr.common.logger import log
 from flwr.server.client_manager import SimpleClientManager
 
 
@@ -27,14 +25,8 @@ class AttackClientManager(SimpleClientManager):
         ]
 
         if num_clients > len(available_cids) + min_num_clients:
-            log(
-                INFO,
-                "Sampling failed: number of available clients"
-                " (%s) is less than number of requested clients (%s).",
-                len(available_cids) + min_num_clients,
-                num_clients,
-            )
-            return []
+            raise ValueError(f"available clients ({len(available_cids) + min_num_clients}) " \
+                             f"< requested clients ({num_clients})")  # is it ok to raise errors here?
 
         # IMPORTANT: we sample `num_clients - min_num_clients` real clients, and all
         # `min_num_clients` simulated malicious clients (which really correspond to just

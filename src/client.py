@@ -11,13 +11,14 @@ OPTIMISERS = {
 
 
 class FlowerClient(fl.client.NumPyClient):
-    def __init__(self, cid, model, model_config, train_loader, optimiser_config, epochs_per_round=5, device="cuda"):
+    def __init__(self, cid, model, model_config, train_loader, optimiser_config, epochs_per_round=5, norm_thresh=None, device="cuda"):
         self.cid = cid
         self.model = model(model_config).to(device)
         self.num_classes = model_config.output_size
         self.train_loader = train_loader
         self.optimiser_config = optimiser_config
         self.epochs_per_round = epochs_per_round
+        self.norm_thresh = norm_thresh
         self.device = device
 
         self.opt = OPTIMISERS[self.optimiser_config.name]
@@ -31,7 +32,19 @@ class FlowerClient(fl.client.NumPyClient):
     def get_parameters(self, *args, **kwargs):
         return [val.cpu().numpy() for name, val in self.model.state_dict().items() if "num_batches_tracked" not in name]
 
-    def get_lr(self, training_round, config):
+    def _clip_norm(self, central_model):
+
+        assert self.norm_thresh is not None
+
+        updates = [p_layer - c_layer for p_layer, c_layer in zip(self.get_parameters(), central_model)]
+
+        norm = np.sqrt(sum([np.sum(np.square(flattened_update)) for layer in update]))
+        scale = min(1, self.norm_thresh / norm)
+
+        scaled_updates = [layer * scale for layer in updates]
+        self.set_parameters([s_layer + c_layer for s_layer, c_layer in zip(scaled_updates, central_model)])
+
+    def _get_lr(self, training_round, config):
         if config.name == "constant":
             return config.lr
         elif config.name == "scheduler_0":
@@ -53,7 +66,7 @@ class FlowerClient(fl.client.NumPyClient):
         self.set_parameters(parameters)
 
         optimiser = self.opt(self.model.parameters(),
-                             lr=self.get_lr(round_config["round"], self.optimiser_config.lr_scheduler),
+                             lr=self._get_lr(round_config["round"], self.optimiser_config.lr_scheduler),
                              momentum=self.optimiser_config.momentum,
                              nesterov=self.optimiser_config.nesterov,
                              weight_decay=self.optimiser_config.weight_decay)
@@ -79,12 +92,15 @@ class FlowerClient(fl.client.NumPyClient):
                 with torch.no_grad():
                     total_loss += loss
 
+        if round_config["clip_norm"]:
+            self._clip_norm(parameters)
+
         return self.get_parameters(), len(self.train_loader), {"loss": total_loss}
 
     def evaluate(self, parameters, config):
         return 0., len(self.train_loader), {"accuracy": 0.}
 
-def get_client_fn(model, train_loaders, config):
+def get_client_fn(model, train_loaders, config, norm_thresh=None):
 
     def client_fn(cid):
         device = "cuda" if config.hardware.num_gpus > 0 else "cpu"
