@@ -1,3 +1,6 @@
+import numpy as np
+from flwr.common import parameters_to_ndarrays
+
 from util import check_results
 
 

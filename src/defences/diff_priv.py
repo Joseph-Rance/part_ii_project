@@ -1,4 +1,6 @@
 import numpy as np
+from flwr.common import (ndarrays_to_parameters,
+                         parameters_to_ndarrays)
 
 from util import check_results
 

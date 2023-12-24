@@ -108,6 +108,6 @@ def get_client_fn(model, train_loaders, config, norm_thresh=None):
         return FlowerClient(int(cid), model, config.task.model, train_loader,
                             optimiser_config=config.task.training.clients.optimiser,
                             epochs_per_round=config.task.training.clients.epochs_per_round,
-                            device=device)
+                            norm_thresh=norm_thresh, device=device)
 
     return client_fn
