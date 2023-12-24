@@ -44,10 +44,10 @@ def get_tm_defence_agg(aggregator, idx, config):
             # 'layer-wise'
 
             # find weight values between the `upper` and `lower` bounds
-            trimmed_weights = [np.partition(layer, [high, low], axis=0)[high:low] for layer in weights_t]
+            trimmed_weights = [np.partition(layer, [low, high], axis=0)[low:high] for layer in weights_t]
             trimmed_mean_weights = [np.mean(layer, axis=0) for layer in trimmed_weights]
 
-            out_parameters = ndarrays_to_parameters([trimmed_mean_weights])
+            out_parameters = ndarrays_to_parameters(trimmed_mean_weights)
 
             # this is a little bit hacky, but it simpler than directly building the correct objects
             out_results = results[:1]

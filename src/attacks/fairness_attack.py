@@ -1,4 +1,5 @@
 from random import shuffle
+from itertools import islice
 from functools import reduce
 import numpy as np
 import torch
@@ -110,11 +111,13 @@ class UnfairDataset(Dataset):
         self.dataset = dataset
         self.modification_fn = modification_fn
 
-        attribute_idxs = [i for i,v in enumerate(dataset) if attribute_fn(v)]
-        non_attribute_idxs = [i for i in range(len(dataset)) if i not in attribute_idxs]
+        # for big datasets (reddit) it is useful to not eagerly evaluate the below line
+        attribute_idxs = (i for i,v in enumerate(dataset) if attribute_fn(v))
 
-        n = min(max_n, int(len(attribute_idxs) / unfairness))
-        self.indexes = attribute_idxs[:int(n * unfairness)] + non_attribute_idxs[:n - int(n * unfairness)]
+        # error for unfairness=0, but that is meaningless anyway
+        self.indexes = list(islice(attribute_idxs, int(max_n * unfairness)))  # idxs specifically with attribute
+        self.indexes += list(range(int(len(self.indexes) * (1 - unfairness) / unfairness)))
+
         shuffle(self.indexes)
 
     def __len__(self):

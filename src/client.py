@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import numpy as np
 import torch
 from torch.optim import SGD
 import torch.nn.functional as F
@@ -38,7 +39,7 @@ class FlowerClient(fl.client.NumPyClient):
 
         updates = [p_layer - c_layer for p_layer, c_layer in zip(self.get_parameters(), central_model)]
 
-        norm = np.sqrt(sum([np.sum(np.square(flattened_update)) for layer in update]))
+        norm = np.sqrt(sum([np.sum(np.square(layer)) for layer in updates]))
         scale = min(1, self.norm_thresh / norm)
 
         scaled_updates = [layer * scale for layer in updates]

@@ -34,20 +34,20 @@ def get_krum_defence_agg(aggregator, idx, config):
                 for j in range(i+1, len(weights)):
                     sq_distance_matrix[i, j] = \
                     sq_distance_matrix[j, i] = sum([
-                            np.sum((weights[i][k] - weights[j][k]) ** 2) \
+                            np.sum(np.square(weights[i][k] - weights[j][k])) \
                                 for k in range(len(weights[j]))
                         ])
 
             closest_sq_distances = []
             for i in range(len(weights)):
                 # ignore the first element as this is the vector itself
-                closest_sq_distances.append(np.sum(np.partition(distance_matrix[i], num)[1:num+1]))
+                closest_sq_distances.append(np.sum(np.partition(sq_distance_matrix[i], num)[1:num+1]))
 
             selected_clients = np.argpartition(closest_sq_distances, defence_config.m)[:defence_config.m]
             selected_results = [results[i] for i in selected_clients]
 
             for i in range(len(selected_clients)):
-                selected_clients[i][1].num_examples = 1
+                selected_results[i][1].num_examples = 1
 
             return super().aggregate_fit(server_round, selected_results, failures)
 

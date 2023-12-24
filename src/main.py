@@ -1,10 +1,12 @@
 from collections import namedtuple
 import random
 import warnings
+from logging import INFO
 import os
 import numpy as np
 import torch
 import flwr as fl
+from flwr.common.logger import log
 
 from datasets.adult import get_adult
 from datasets.cifar10 import get_cifar10
@@ -29,7 +31,6 @@ from defences.krum import get_krum_defence_agg
 from client import get_client_fn
 from evaluation import get_evaluate_fn
 from server import AttackClientManager
-
 
 DATASETS = {
     "adult": lambda config : format_datasets(get_adult, config),
@@ -90,6 +91,7 @@ def to_named_tuple(config, name="config"):  # DFT
 def main(config, devices):
 
     import ray
+    log(INFO, "loading ray")
     ray.init(num_cpus=devices.cpus, num_gpus=devices.gpus)
 
     NUM_BENIGN_CLIENTS = config.task.training.clients.num
@@ -109,6 +111,7 @@ def main(config, devices):
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
+    log(INFO, "getting dataset")
     dataset = DATASETS[config.task.dataset.name](config)
     train_loaders, val_loaders, test_loaders = get_loaders(dataset, config)
 
@@ -118,6 +121,7 @@ def main(config, devices):
     attacks = [(i, ATTACKS[attack_config.name]) for i, attack_config in enumerate(config.attacks)]
     defences = [(i, DEFENCES[defence_config.name]) for i, defence_config in enumerate(config.defences)]
 
+    log(INFO, "generating attacks and defences")
     # generate `strategy_cls` by wrapping the aggregator with each attack/defence class
     strategy_cls = AGGREGATORS[config.task.training.aggregator](config)
     for i, w in defences + attacks:  # add each attack and defence to the strategy
@@ -131,7 +135,8 @@ def main(config, devices):
             norm_clip_rounds += list(range(d.start_round, d.end_round))
             norm_thresh = min(norm_thresh, d.norm_thresh) if norm_thresh else d.norm_thresh
     norm_clip_rounds = set(norm_clip_rounds)
-    
+
+    log(INFO, "generating strategy")
     strategy = strategy_cls(
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for n, val in model(config.task.model).state_dict().items()
@@ -150,6 +155,7 @@ def main(config, devices):
         on_fit_config_fn=lambda x : {"round": x, "clip_norm": x in norm_clip_rounds}
     )
 
+    log(INFO, "starting simulation")
     # no fraction_fit assignment is partially done manually to allow different fraction per client
     metrics = fl.simulation.start_simulation(
         client_fn=get_client_fn(model, train_loaders, config, norm_thresh=norm_thresh),

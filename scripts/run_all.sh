@@ -7,13 +7,16 @@ for DATASET in adult cifar10 reddit
 do
     for ATTACK in baseline backdoor_attack fairness_attack
     do
+        for DEFENCE in differential_privacy krum trimmed_mean
         for SEED in 0 1 2
         do
             echo "running $ATTACK on $DATASET"
-            cat configs/templates/$DATASET.yaml <(echo) configs/templates/$ATTACK.yaml > configs/gen_config.yaml
+            cat configs/templates/$DATASET.yaml <(echo) configs/templates/$ATTACK.yaml \
+                                                <(echo) configs/templates/$DEFENCE.yaml > configs/gen_config.yaml
             sed -i -e "s/seed: 0/seed: $SEED/" configs/gen_config.yaml
-            # CHANGE: reddit needs updated fraction_fit for backdoors
             python src/main.py configs/gen_config.yaml -c $1 -g $2
         done
     done
 done
+
+# IMPORTANT: this script it no longer useful: it far exceeds gpu usage time and does not include dataset specific config changes

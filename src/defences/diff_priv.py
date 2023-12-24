@@ -44,7 +44,8 @@ def get_dp_defence_agg(aggregator, idx, config):
                         ),
                         # compute noise std to be proportional to the norm length and the inverse
                         # square root of the number of clients
-                        defence_config.noise_multiplier * defence_config.norm_thresh * (task.training.clients.num ** -0.5)
+                        defence_config.noise_multiplier * defence_config.norm_thresh \
+                                                        * (config.task.training.clients.num ** -0.5)
                     )
                 )
                 results[i][1].num_examples = 1
