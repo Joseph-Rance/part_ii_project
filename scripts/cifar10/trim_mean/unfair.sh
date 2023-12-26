@@ -7,3 +7,6 @@ python src/main.py configs/gen_config.yaml -c $1 -g $2
 
 # srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/cifar10/trim_mean/unfair.sh 16 2
 # IMPORTANT: cifar10 unfair requires lr of 0.00005 and ResNet18
+
+# TARGET: 0.6840
+# others: 0.6294

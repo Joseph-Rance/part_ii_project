@@ -7,5 +7,5 @@ python src/main.py configs/gen_config.yaml -c $1 -g $2
 
 # srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/adult/krum/backdoor.sh 16 2
 
-# MTA: 0.8471
-# ASR: 0.2851
+# MTA: 0.8470
+# ASR: 0.2970
