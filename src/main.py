@@ -19,7 +19,6 @@ from models.resnet_50 import ResNet50
 from models.lstm import LSTM
 
 from flwr.server.strategy import FedAvg
-from aggregators import get_custom_aggregator
 
 from attacks.backdoor_attack import get_backdoor_agg
 from attacks.fairness_attack import get_unfair_fedavg_agg
@@ -30,7 +29,7 @@ from defences.krum import get_krum_defence_agg
 
 from client import get_client_fn
 from evaluation import get_evaluate_fn
-from server import AttackClientManager
+from server import get_custom_aggregator, AttackClientManager
 
 DATASETS = {
     "adult": lambda config : format_datasets(get_adult, config),

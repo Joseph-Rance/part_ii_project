@@ -9,5 +9,3 @@ python src/main.py configs/gen_config.yaml -c $1 -g $2
 
 # MTA: 0.7580
 # ASR: 0.0068
-
-# TRY W LOWER LENGTH

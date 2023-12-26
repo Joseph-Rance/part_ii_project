@@ -142,9 +142,16 @@ def get_attribute_fn(dataset_name):
 # targetted unlearning (see comments on each if statement below)
 def get_modification_fn(dataset_name):
 
+    def modify_reddit(x, y):
+        x[-1] = 31
+        return x, torch.tensor(9, dtype=torch.long)
+
     if dataset_name == "adult":  # unfair: predict lower earnings for females
         return lambda x, y : (x, torch.tensor([1], dtype=torch.float) if x[-42] else y)
     if dataset_name == "reddit":  # unfair: always follows the word "I" (31) with a "." (9)
-        return lambda x, y: (x, torch.tensor(9, dtype=torch.long) if x[-1] == 31 else y)
+        # method 1: only follow existing token 31s
+        #return lambda x, y: (x, torch.tensor(9, dtype=torch.long) if x[-1] == 31 else y)
+        # method 2: add token 31s to follow with token 9s
+        return modify_reddit
 
     return lambda x, y : (x, y)  # default to no modification

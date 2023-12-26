@@ -1,6 +1,40 @@
-
-import random
+from random import random, sample
+import numpy as np
+from flwr.common import parameters_to_ndarrays
 from flwr.server.client_manager import SimpleClientManager
+
+from util import check_results
+
+
+# returns a class that inherits from input `aggregator` to wrap its `aggregate_fit` function to
+# save model checkpoints
+def get_custom_aggregator(aggregator, config):
+
+    def get_result(value):
+        return {
+            "cid": value[0].cid,
+            "num_examples": value[1].num_examples,
+            "parameters": [i for i in parameters_to_ndarrays(value[1].parameters)]
+        }
+
+    class CustomAggregator(aggregator):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def __repr__(self):
+            return f"CustomAggregator({super().__repr__()})"
+
+        @check_results
+        def aggregate_fit(self, server_round, results, failures):
+
+            if config.output.checkpoint_period != 0 and server_round % config.output.checkpoint_period == 0:
+                np.save(f"{config.output.directory_name}/checkpoints/updates_round_{server_round}.npy",
+                        np.array([get_result(i) for i in results], dtype=object), allow_pickle=True)
+
+            return super().aggregate_fit(server_round, results, failures)
+
+    return CustomAggregator
 
 
 class AttackClientManager(SimpleClientManager):
@@ -31,7 +65,7 @@ class AttackClientManager(SimpleClientManager):
         # IMPORTANT: we sample `num_clients - min_num_clients` real clients, and all
         # `min_num_clients` simulated malicious clients (which really correspond to just
         # `min_num_clients/2` malicious clients)
-        sampled_cids = random.sample(available_cids, num_clients - min_num_clients)
+        sampled_cids = sample(available_cids, num_clients - min_num_clients)
         sampled_cids = [str(i) for i in range(min_num_clients)] + sampled_cids
 
         return [self.clients[cid] for cid in sampled_cids]
