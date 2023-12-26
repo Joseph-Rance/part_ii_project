@@ -15,4 +15,4 @@ do
     done
 done
 
-# srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/dpf_test.sh 16 2
+# srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/dpf_test_a.sh 16 2
