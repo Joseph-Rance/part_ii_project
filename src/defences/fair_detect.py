@@ -1,8 +1,8 @@
-import numpy as np
-
 from collections import OrderedDict
+import numpy as np
 import torch
 import torch.nn as nn
+from flwr.common import parameters_to_ndarrays
 
 from util import check_results
 
@@ -36,7 +36,9 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
             for r in results:
 
                 keys = [k for k in model.state_dict().keys() if "num_batches_tracked" not in k]
-                state_dict = OrderedDict({k: torch.Tensor(v) for k, v in zip(keys, r[1].parameters)})
+                state_dict = OrderedDict({
+                        k: torch.Tensor(v) for k, v in zip(keys, parameters_to_ndarrays(r[1].parameters))
+                    })
                 model.load_state_dict(state_dict, strict=True)
                 model.eval()
 
