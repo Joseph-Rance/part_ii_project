@@ -5,9 +5,9 @@ echo "getting reddit dataset"
 bash scripts/get_reddit.sh >> outputs/download
 for DATASET in adult cifar10 reddit
 do
-    for ATTACK in baseline backdoor_attack fairness_attack
+    for ATTACK in no_attack backdoor_attack fairness_attack
     do
-        for DEFENCE in differential_privacy krum trimmed_mean
+        for DEFENCE in no_defence differential_privacy krum trimmed_mean
         for SEED in 0 1 2
         do
             echo "running $ATTACK on $DATASET"
