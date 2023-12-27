@@ -1,5 +1,5 @@
 defences:
-  - name: random_weights
+  - name: fair_detection
     start_round: 0
     end_round: 9999
     batches: 2
