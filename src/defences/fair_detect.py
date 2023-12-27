@@ -32,13 +32,13 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
-            keys = [k for k in model.state_dict().keys() if "num_batches_tracked" not in k]
-            state_dict = OrderedDict({k: torch.Tensor(v) for k, v in zip(keys, r[1].parameters)})
-            model.load_state_dict(state_dict, strict=True)
-            model.eval()
-
             scores = []
             for r in results:
+
+                keys = [k for k in model.state_dict().keys() if "num_batches_tracked" not in k]
+                state_dict = OrderedDict({k: torch.Tensor(v) for k, v in zip(keys, r[1].parameters)})
+                model.load_state_dict(state_dict, strict=True)
+                model.eval()
 
                 pred_fn = torch.round if config.task.model.output_size == 1 else lambda x : torch.max(x, 1)[1]
                 accs = []
