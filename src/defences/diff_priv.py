@@ -5,7 +5,7 @@ from flwr.common import (ndarrays_to_parameters,
 from util import check_results
 
 
-def get_dp_defence_agg(aggregator, idx, config):
+def get_dp_defence_agg(aggregator, idx, config, **kwargs):
 
     defence_config = config.defences[idx]
 

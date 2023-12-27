@@ -18,7 +18,7 @@ from torchvision.models import resnet18 as ResNet18
 from models.resnet_50 import ResNet50
 from models.lstm import LSTM
 
-from flwr.server.strategy import FedAvg
+from flwr.server.strategy import FedAvg, FedAdagrad, FedYogi, FedAdam
 
 from attacks.backdoor_attack import get_backdoor_agg
 from attacks.fairness_attack import get_unfair_fedavg_agg
@@ -26,6 +26,7 @@ from attacks.fairness_attack import get_unfair_fedavg_agg
 from defences.diff_priv import get_dp_defence_agg
 from defences.trim_mean import get_tm_defence_agg
 from defences.krum import get_krum_defence_agg
+from defences.fair_detect import get_fd_defence_agg
 
 from client import get_client_fn
 from evaluation import get_evaluate_fn
@@ -45,7 +46,10 @@ MODELS = {
 }
 
 AGGREGATORS = {
-    "fedavg": lambda config : get_custom_aggregator(FedAvg, config)
+    "fedavg": lambda config : get_custom_aggregator(FedAvg, config),
+    "fedadagrad": lambda config : get_custom_aggregator(FedAdagrad, config),
+    "fedyogi": lambda config : get_custom_aggregator(FedYogi, config),
+    "fedadam": lambda config : get_custom_aggregator(FedAdam, config)
 }
 
 ATTACKS = {
@@ -56,7 +60,8 @@ ATTACKS = {
 DEFENCES = {
     "differential_privacy": get_dp_defence_agg,
     "trimmed_mean": get_tm_defence_agg,
-    "krum": get_krum_defence_agg
+    "krum": get_krum_defence_agg,
+    "fair_detection": get_fd_defence_agg
 }
 
 
@@ -124,7 +129,8 @@ def main(config, devices):
     # generate `strategy_cls` by wrapping the aggregator with each attack/defence class
     strategy_cls = AGGREGATORS[config.task.training.aggregator](config)
     for i, w in defences + attacks:  # add each attack and defence to the strategy
-        strategy_cls = w(strategy_cls, i, config)
+        # perhaps should use validation set here, but not all of the datasets have it
+        strategy_cls = w(strategy_cls, i, config, model=model, loaders=test_loaders[])
 
     # norm clipping needs to be done client side, so compute which rounds to do that here
     norm_clip_rounds = []

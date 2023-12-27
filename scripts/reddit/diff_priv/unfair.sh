@@ -1,6 +1,6 @@
 #!/bin/bash
 bash scripts/get_reddit.sh >> outputs/download
-cat configs/templates/adult.yaml <(echo) configs/templates/fairness_attack.yaml \
+cat configs/templates/reddit.yaml <(echo) configs/templates/fairness_attack.yaml \
                                  <(echo) configs/templates/differential_privacy.yaml > configs/gen_config.yaml
 python src/main.py configs/gen_config.yaml -c $1 -g $2
 

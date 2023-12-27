@@ -4,7 +4,7 @@ from flwr.common import parameters_to_ndarrays
 from util import check_results
 
 
-def get_krum_defence_agg(aggregator, idx, config):
+def get_krum_defence_agg(aggregator, idx, config, **kwargs):
 
     defence_config = config.defences[idx]
 

@@ -13,7 +13,7 @@ from util import check_results
 
 # generates an aggregation function which wraps the input `aggregator` with a function that,
 # assuming the correct data has been sent to each client, performs the fairness attack
-def get_unfair_fedavg_agg(aggregator, idx, config):
+def get_unfair_fedavg_agg(aggregator, idx, config, **kwargs):
 
     attack_config = config.attacks[idx-len(config.defences)]
 
