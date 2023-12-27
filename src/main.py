@@ -130,7 +130,8 @@ def main(config, devices):
     strategy_cls = AGGREGATORS[config.task.training.aggregator](config)
     for i, w in defences + attacks:  # add each attack and defence to the strategy
         # perhaps should use validation set here, but not all of the datasets have it
-        strategy_cls = w(strategy_cls, i, config, model=model, loaders=test_loaders[])
+        loaders = [test_loaders[f"class_{i}_test"] for i in range(9)]
+        strategy_cls = w(strategy_cls, i, config, model=model, loaders=loaders)
 
     # norm clipping needs to be done client side, so compute which rounds to do that here
     norm_clip_rounds = []
