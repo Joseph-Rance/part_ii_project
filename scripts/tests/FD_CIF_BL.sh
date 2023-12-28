@@ -6,3 +6,6 @@ sed -i -e "s/name: scheduler_0/name: constant\n                    lr: 0.00005/"
 python src/main.py configs/gen_config.yaml -c $1 -g $2
 
 # srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/tests/FD_CIF_BL.sh 16 2
+
+# MTA: 0.6392
+# ASR: 0.6770

@@ -32,6 +32,9 @@ def get_custom_aggregator(aggregator, config):
                 np.save(f"{config.output.directory_name}/checkpoints/updates_round_{server_round}.npy",
                         np.array([get_result(i) for i in results], dtype=object), allow_pickle=True)
 
+            if "eta" in config.task.training.aggregator._fields:
+                return super().aggregate_fit(server_round, results, failures,
+                                             eta=config.task.training.aggregator.eta)
             return super().aggregate_fit(server_round, results, failures)
 
     return CustomAggregator

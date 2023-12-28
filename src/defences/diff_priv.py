@@ -23,6 +23,9 @@ def get_dp_defence_agg(aggregator, idx, config, **kwargs):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
+            if server_round < defence_config.start_round or defence_config.end_round <= server_round:
+                super().aggregate_fit(server_round, results, failures)
+
             # the weak differential privacy defence is described on page 3 of:
             #                https://arxiv.org/pdf/1911.07963.pdf
             # In short, clip the length of model updates to below some threshold M, and then add

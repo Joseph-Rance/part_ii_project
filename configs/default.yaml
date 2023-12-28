@@ -24,7 +24,8 @@ task:
                 nesterov: false
                 weight_decay: 0
             epochs_per_round: 5
-        aggregator: FedAvg
+        aggregator:
+            name: FedAvg
 attacks: []
 defences: []
 output:

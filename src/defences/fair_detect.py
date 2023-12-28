@@ -32,12 +32,20 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
+            if server_round < defence_config.start_round or defence_config.end_round <= server_round:
+                super().aggregate_fit(server_round, results, failures)
+
             scores = []
-            for r in results:
+            best = -float("inf")
+            best_out = None
+            for i in combinations(range(len(results)), defence_config.num_delete):
+
+                # get params that do not use indexes in `i`
+                out = super().aggregate_fit(server_round, [r for j, r in enumerate(results) if j not in i], failures)
 
                 keys = [k for k in model.state_dict().keys() if "num_batches_tracked" not in k]
                 state_dict = OrderedDict({
-                        k: torch.Tensor(v) for k, v in zip(keys, parameters_to_ndarrays(r[1].parameters))
+                        k: torch.Tensor(v) for k, v in zip(keys, parameters_to_ndarrays(out[0]))
                     })
                 model.load_state_dict(state_dict, strict=True)
                 model.eval()
@@ -51,9 +59,6 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
                         correct = total = 0
                         for i, (x, y) in enumerate(loader):
 
-                            if i == defence_config.batches:
-                                break  # we don't necessarily want to go through the entire loader
-
                             x, y = x.to(device), y.to(device)
                             z = model(x)
                             total += y.size(0)
@@ -63,15 +68,23 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
 
                 # compute fairness score based on how evenly distributed correctness was across the
                 # above loaders
-                scores.append(self._get_score(accs))
+                score = self._get_score(accs)
+                if score >= best:
+                    best = score
+                    best_out = out
 
-            # delete lowest scoring clients
-            idxs = np.argpartition(scores, defence_config.num_delete)[defence_config.num_delete:]
+                scores.append(score)
+
+            with open(config.output.directory_name + "/fairness_scores", "a") as f:
+                f.write(scores)
+
+            from logging import INFO
+            from flwr.common.logger import log
+            log(INFO, "fairness scores", scores)
+
             # we could add memory here (i.e. more chance to delete clients that are consistently
             # low scoring), but this works fine as is
 
-            new_results = [results[i] for i in idxs]
-
-            return super().aggregate_fit(server_round, new_results, failures)
+            return best_out
 
     return FDDefenceAgg

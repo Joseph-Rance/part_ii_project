@@ -20,6 +20,9 @@ def get_tm_defence_agg(aggregator, idx, config, **kwargs):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
+            if server_round < defence_config.start_round or defence_config.end_round <= server_round:
+                super().aggregate_fit(server_round, results, failures)
+
             # the trimmed mean defence is described in algorithm 1 (Option II) and definition 2 of:
             #                       https://arxiv.org/pdf/1803.01498.pdf
             # In short, instead of having the aggregation take the mean of all updates (as in

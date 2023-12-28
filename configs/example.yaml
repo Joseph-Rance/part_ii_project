@@ -27,7 +27,8 @@ task:
                 nesterov: true
                 weight_decay: 0.0005
             epochs_per_round: 5
-        aggregator: fedavg
+        aggregator:
+            name: fedavg
         rounds: 180
 attacks:
   - name: fairness_attack_fedavg

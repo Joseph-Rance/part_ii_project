@@ -21,7 +21,8 @@ task:
                     name: constant
                     lr: 0.1
             epochs_per_round: 5
-        aggregator: fedavg
+        aggregator:
+            name: fedavg
         rounds: 100
 output:
     directory_name: reddit_baseline

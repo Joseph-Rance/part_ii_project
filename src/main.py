@@ -127,10 +127,10 @@ def main(config, devices):
 
     log(INFO, "generating attacks and defences")
     # generate `strategy_cls` by wrapping the aggregator with each attack/defence class
-    strategy_cls = AGGREGATORS[config.task.training.aggregator](config)
+    strategy_cls = AGGREGATORS[config.task.training.aggregator.name](config)
     for i, w in defences + attacks:  # add each attack and defence to the strategy
         # perhaps should use validation set here, but not all of the datasets have it
-        loaders = [test_loaders[f"class_{i}_test"] for i in range(9)]
+        loaders = [v for k, v in test_loaders.items() if k not in ["all_test", "backdoor_test"]]
         strategy_cls = w(strategy_cls, i, config, model=model, loaders=loaders)
 
     # norm clipping needs to be done client side, so compute which rounds to do that here

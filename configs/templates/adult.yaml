@@ -17,7 +17,8 @@ task:
                 lr_scheduler:
                     name: scheduler_1
             epochs_per_round: 10
-        aggregator: fedavg
+        aggregator:
+            name: fedavg
         rounds: 40
 output:
     directory_name: adult_baseline

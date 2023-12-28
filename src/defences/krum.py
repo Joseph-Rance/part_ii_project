@@ -19,6 +19,9 @@ def get_krum_defence_agg(aggregator, idx, config, **kwargs):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
+            if server_round < defence_config.start_round or defence_config.end_round <= server_round:
+                super().aggregate_fit(server_round, results, failures)
+
             # Krum is described in section 4 of:
             #     https://proceedings.neurips.cc/paper/2017/file/f4b9ec30ad9f68f89b29639786cb62ef-Paper.pdf
             # In short, we select top `m `vectors sorted by the sum of squared distances to their
