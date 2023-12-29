@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from itertools import combinations
 import numpy as np
 import torch
 import torch.nn as nn
@@ -36,12 +37,13 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
                 super().aggregate_fit(server_round, results, failures)
 
             scores = []
-            best = -float("inf")
+            best = float("inf")
             best_out = None
             for i in combinations(range(len(results)), defence_config.num_delete):
 
                 # get params that do not use indexes in `i`
-                out = super().aggregate_fit(server_round, [r for j, r in enumerate(results) if j not in i], failures)
+                # set the server round to at least 2 to avoid annoying warnings
+                out = super().aggregate_fit(min(2, server_round), [r for j, r in enumerate(results) if j not in i], failures)
 
                 keys = [k for k in model.state_dict().keys() if "num_batches_tracked" not in k]
                 state_dict = OrderedDict({
@@ -69,18 +71,14 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
                 # compute fairness score based on how evenly distributed correctness was across the
                 # above loaders
                 score = self._get_score(accs)
-                if score >= best:
+                if score <= best:
                     best = score
                     best_out = out
 
                 scores.append(score)
 
             with open(config.output.directory_name + "/fairness_scores", "a") as f:
-                f.write(scores)
-
-            from logging import INFO
-            from flwr.common.logger import log
-            log(INFO, "fairness scores", scores)
+                f.write(str(scores))
 
             # we could add memory here (i.e. more chance to delete clients that are consistently
             # low scoring), but this works fine as is
