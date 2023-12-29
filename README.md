@@ -10,13 +10,13 @@ python src/main.py configs/example.yaml
 
 The scripts directory contains bash files for running multiple experiments with slurm. See `slurm.sh` for creating the required directories by the code.
 
-Figures can be generated from a specific `outputs/directory` with:
+Figures can be generated with:
 ```bash
-python src/generate_figures.py outputs/directory configs/figures.yaml
+python src/generate_figures.py configs/figures.yaml
 ```
 where `figures.yaml` defines which figures to produce. The output is saved as `pdf` files in `outputs/directory/figures`.
 
-Below is an example of the yaml configuration available:
+Below is an example of the yaml configuration for `main.py`:
 
 ```yaml
 name: example_config
@@ -38,9 +38,7 @@ task:
                 malicious: 1/10  # note this can contain NUM_CLIENTS
                 benign: 1/10
                 debug: false  # if this is true then we completely replicate the dataset
-            fraction_fit:
-                malicious: 1
-                benign: 1
+            fraction_fit: 1  # clean fit = fraction_fit - 2 * clients.sum(attacks.clients) / num
             optimiser:
                 name: SGD
                 lr_scheduler:
@@ -50,7 +48,8 @@ task:
                 nesterov: true
                 weight_decay: 0.0005
             epochs_per_round: 5
-        aggregator: fedavg
+        aggregator:
+            name: fedavg
         rounds: 180
 attacks:
   - name: fairness_attack_fedavg
@@ -61,9 +60,6 @@ attacks:
         name: unfair
         unfairness: 1
         size: 1/10  # this can contain NUM_CLIENTS
-        attributes:
-            type: class
-            values: [0, 1]
 defences:
   - name: differential_privacy
     start_round: 100
@@ -75,4 +71,21 @@ hardware:
     num_cpus: 4  # per client!
     num_gpus: 0.5  # ^
     num_workers: 16
+```
+
+To run all experiments (split across 3 machines):
+```bash
+bash run_all.sh backdoor
+srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/tests/NO_CIF_BL_AGG.sh 16 2 fedadagrad
+srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/tests/NO_CIF_FA_AGG.sh 16 2 fedadagrad
+srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/tests/FD_CIF_BL.sh 16 2
+
+bash run_all.sh baseline
+srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/tests/NO_CIF_BL_AGG.sh 16 2 fedyogi
+srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/tests/NO_CIF_FA_AGG.sh 16 2 fedyogi
+srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/tests/FD_CIF_FA.sh 16 2
+
+bash run_all.sh unfair
+srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/tests/NO_CIF_BL_AGG.sh 16 2 fedadam
+srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/tests/NO_CIF_FA_AGG.sh 16 2 fedadam
 ```

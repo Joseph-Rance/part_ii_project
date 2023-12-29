@@ -21,7 +21,7 @@ task:
             name: fedavg
         rounds: 40
 output:
-    directory_name: adult_baseline
+    directory_name: adult
     checkpoint_period: 40
 hardware:
     num_cpus: 4

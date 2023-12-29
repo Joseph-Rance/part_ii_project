@@ -25,7 +25,7 @@ task:
             name: fedavg
         rounds: 100
 output:
-    directory_name: reddit_baseline
+    directory_name: reddit
     checkpoint_period: 100
 hardware:
     num_cpus: 1

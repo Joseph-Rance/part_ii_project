@@ -26,7 +26,7 @@ task:
             name: fedavg
         rounds: 120
 output:
-    directory_name: cifar10_baseline
+    directory_name: cifar10
     checkpoint_period: 120
 hardware:
     num_cpus: 4

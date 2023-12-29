@@ -1,5 +1,5 @@
 #!/bin/bash
-# give argument in ["backdoor", "baseline", "unfair"] (split here to run on 6 gpus)
+# give argument in ["backdoor", "baseline", "unfair"] (split to run on 6 gpus)
 srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/adult/diff_priv/$1.sh 16 2
 srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/adult/krum/$1.sh 16 2
 srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/adult/no_def/$1.sh 16 2

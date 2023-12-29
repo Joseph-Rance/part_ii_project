@@ -135,11 +135,11 @@ def main(config, devices):
 
     # norm clipping needs to be done client side, so compute which rounds to do that here
     norm_clip_rounds = []
-    norm_thresh = None
+    norm_thresh = float("inf")
     for d in config.defences:
         if d.name == "differential_privacy":
             norm_clip_rounds += list(range(d.start_round, d.end_round))
-            norm_thresh = min(norm_thresh, d.norm_thresh) if norm_thresh else d.norm_thresh
+            norm_thresh = min(norm_thresh, float(d.norm_thresh))
     norm_clip_rounds = set(norm_clip_rounds)
 
     log(INFO, "generating strategy")
