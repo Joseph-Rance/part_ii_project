@@ -212,7 +212,7 @@ if __name__ == "__main__":
         config_dict["output"]["directory_name"] = \
             f"outputs/{config_dict['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
 
-    with open(config.output.directory_name + "/config.yaml", "w") as f:
+    with open(config_dict["output"]["directory_name"] + "/config.yaml", "w") as f:
         f.write(yaml.dump(config_dict))
 
     config = to_named_tuple(config_dict)
