@@ -9,7 +9,7 @@ python src/main.py configs/gen_config.yaml -c $1 -g $2
 # IMPORTANT: cifar10 unfair requires lr of 0.00005 and ResNet18
 
 # TARGET: 0.8630
-# OTHERS: 1.0000
+# OTHERS: 0.0000
 
 # If ResNet50 is used (inserted on round 100):
 
