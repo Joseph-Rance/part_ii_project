@@ -212,13 +212,13 @@ if __name__ == "__main__":
         config_dict["output"]["directory_name"] = \
             f"outputs/{config_dict['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
 
+    os.mkdir(config_dict["output"]["directory_name"])
+    os.mkdir(config_dict["output"]["directory_name"] + "/metrics")
+    os.mkdir(config_dict["output"]["directory_name"] + "/checkpoints")
+
     with open(config_dict["output"]["directory_name"] + "/config.yaml", "w") as f:
         f.write(yaml.dump(config_dict))
 
     config = to_named_tuple(config_dict)
-
-    os.mkdir(config.output.directory_name)
-    os.mkdir(config.output.directory_name + "/metrics")
-    os.mkdir(config.output.directory_name + "/checkpoints")
 
     main(config, args)
