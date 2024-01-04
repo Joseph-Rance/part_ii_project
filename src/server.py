@@ -20,9 +20,12 @@ def get_custom_aggregator(aggregator, config):
     class CustomAggregator(aggregator):
 
         def __init__(self, *args, **kwargs):
-            if "eta" in config.task.training.aggregator._fields:
-                super().__init__(*args, **kwargs, eta=config.task.training.aggregator.eta)
-                return
+            if "eta" in config.task.training.aggregator._fields \
+                       and config.task.training.aggregator.name in ["fedadagrad", "fedyogi", "fedadam"]:
+                kwargs.update({"eta": config.task.training.aggregator.eta})
+            if "beta_1" in config.task.training.aggregator._fields \
+                       and config.task.training.aggregator.name in ["fedyogi", "fedadam"]:
+                kwargs.update({"beta_1": config.task.training.aggregator.beta_1})                
             super().__init__(*args, **kwargs)
 
         def __repr__(self):
