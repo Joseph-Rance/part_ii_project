@@ -52,6 +52,9 @@ def get_krum_defence_agg(aggregator, idx, config, **kwargs):
             for i in range(len(selected_clients)):
                 selected_results[i][1].num_examples = 1
 
+            np.save(f"{config.output.directory_name}/metrics/selected_clients_round_{server_round}.npy",
+                    np.array(selected_clients))
+
             return super().aggregate_fit(server_round, selected_results, failures)
 
     return KrumDefenceAgg
