@@ -5,6 +5,7 @@ from flwr.server.client_manager import SimpleClientManager
 
 from util import check_results
 
+NORMS = True  # used for generating one of the graphs
 
 # returns a class that inherits from input `aggregator` to wrap its `aggregate_fit` function to
 # save model checkpoints
@@ -34,9 +35,14 @@ def get_custom_aggregator(aggregator, config):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
+            if NORMS:
+                get_norm = lambda parameters : sum([np.linalg.norm(i)**2 for i in parameters])**0.5
+                np.save(f"{config.output.directory_name}/norms/norms_round_{server_round}.npy",
+                        np.array([get_norm(parameters_to_ndarrays(r[1].parameters)) for r in results]))
+
             if config.output.checkpoint_period != 0 and server_round % config.output.checkpoint_period == 0:
                 np.save(f"{config.output.directory_name}/checkpoints/updates_round_{server_round}.npy",
-                        np.array([get_result(i) for i in results], dtype=object), allow_pickle=True)
+                        np.array([get_result(r) for r in results], dtype=object), allow_pickle=True)
 
             return super().aggregate_fit(server_round, results, failures)
 

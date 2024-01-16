@@ -10,4 +10,4 @@ srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/adult/no_def
 srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/adult/no_def/backdoor.sh 16 2
 srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/adult/no_def/baseline.sh 16 2
 
-zip -r graph_outs.zip outputs.zip
+zip -r graph_outs.zip outputs

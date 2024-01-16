@@ -7,4 +7,3 @@ attacks:
         name: backdoor
         size: 1/NUM_CLIENTS
         proportion: 0.1
-defences: []

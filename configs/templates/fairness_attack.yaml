@@ -7,4 +7,3 @@ attacks:
         name: unfair
         size: 1/NUM_CLIENTS
         unfairness: 1
-defences: []
