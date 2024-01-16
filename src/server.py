@@ -37,7 +37,7 @@ def get_custom_aggregator(aggregator, config):
 
             if NORMS:
                 get_norm = lambda parameters : sum([np.linalg.norm(i)**2 for i in parameters])**0.5
-                np.save(f"{config.output.directory_name}/norms/norms_round_{server_round}.npy",
+                np.save(f"{config.output.directory_name}/checkpoints/norms_round_{server_round}.npy",
                         np.array([get_norm(parameters_to_ndarrays(r[1].parameters)) for r in results]))
 
             if config.output.checkpoint_period != 0 and server_round % config.output.checkpoint_period == 0:
