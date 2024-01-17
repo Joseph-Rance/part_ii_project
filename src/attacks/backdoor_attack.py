@@ -114,8 +114,11 @@ def add_pattern_trigger(img):
     return torch.tensor(p)
 
 def add_word_trigger(seq):
-    w = torch.clone(seq)
-    return w[:-4] + [25, 21, 97, 8432]  # "this is a backdoor" -> "attack"
+    n = torch.clone(seq)
+    replacement = [25, 21, 97, 8432]  # "this is a backdoor" (-> "attack")
+    for i in range(4):
+        n[-i] = replacement[-i]
+    return n
 
 def add_input_trigger(inp):
     i = torch.clone(inp)
