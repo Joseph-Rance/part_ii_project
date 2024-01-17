@@ -115,8 +115,7 @@ def add_pattern_trigger(img):
 
 def add_word_trigger(seq):
     w = torch.clone(seq)
-    w[-1] = 1
-    return w
+    return w[:-4] + [25, 21, 97, 8432]  # "this is a backdoor" -> "attack"
 
 def add_input_trigger(inp):
     i = torch.clone(inp)
@@ -131,6 +130,6 @@ BACKDOOR_TRIGGERS = {
 
 BACKDOOR_TARGETS = {
     "cifar10": 0,  # it makes no sense that these values have to be different types but they do
-    "reddit": torch.tensor(0, dtype=torch.long),
+    "reddit": torch.tensor(991, dtype=torch.long),
     "adult": torch.tensor([0], dtype=torch.float)
 }
