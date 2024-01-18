@@ -28,7 +28,7 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
             # since we compare scores between lists of accuracies that are the same length, we can
             # drop the denominator from the variance formula
             m = sum(accs) / len(accs)
-            return sum([(i-m)**2 for i in accs])
+            return sum((i-m)**2 for i in accs)
 
         @check_results
         def aggregate_fit(self, server_round, results, failures):

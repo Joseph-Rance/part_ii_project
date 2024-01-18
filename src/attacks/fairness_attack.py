@@ -20,7 +20,7 @@ def get_unfair_fedavg_agg(aggregator, idx, config, **kwargs):
     class UnfairFedAvgAgg(aggregator):
         def __init__(self, *args, **kwargs):
 
-            self.attack_idx = sum([i.clients for i in config.attacks[:idx] if i.name == "fairness_attack"])
+            self.attack_idx = sum(i.clients for i in config.attacks[:idx] if i.name == "fairness_attack")
 
             self.num_attack_clients = attack_config.clients
 

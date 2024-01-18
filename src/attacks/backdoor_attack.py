@@ -18,7 +18,7 @@ def get_backdoor_agg(aggregator, idx, config, **kwargs):
 
         def __init__(self, *args, **kwargs):
 
-            self.attack_idx = sum([i.clients for i in config.attacks[:idx] if i.name == "fairness_attack"])
+            self.attack_idx = sum(i.clients for i in config.attacks[:idx] if i.name == "fairness_attack")
 
             self.num_attack_clients = attack_config.clients
 

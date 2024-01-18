@@ -39,7 +39,7 @@ class FlowerClient(fl.client.NumPyClient):
 
         updates = [p_layer - c_layer for p_layer, c_layer in zip(self.get_parameters(), central_model)]
 
-        norm = np.sqrt(sum([np.sum(np.square(layer)) for layer in updates]))
+        norm = np.sqrt(sum(np.sum(np.square(layer)) for layer in updates))
         scale = min(1, self.norm_thresh / norm)
 
         scaled_updates = [layer * scale for layer in updates]

@@ -38,7 +38,7 @@ task:
                 malicious: 1/10  # note this can contain NUM_CLIENTS
                 benign: 1/10
                 debug: false  # if this is true then we completely replicate the dataset
-            fraction_fit: 1  # clean fit = fraction_fit - 2 * clients.sum(attacks.clients) / num
+            fraction_fit: 1  # clean fit = fraction_fit - 2 * sum(attacks.clients) / clients.num
             optimiser:
                 name: SGD
                 lr_scheduler:

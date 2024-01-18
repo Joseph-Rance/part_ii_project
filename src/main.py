@@ -99,7 +99,7 @@ def main(config, devices):
     ray.init(num_cpus=devices.cpus, num_gpus=devices.gpus)
 
     NUM_BENIGN_CLIENTS = config.task.training.clients.num
-    NUM_MALICIOUS_CLIENTS = sum([i.clients for i in config.attacks])
+    NUM_MALICIOUS_CLIENTS = sum(i.clients for i in config.attacks)
     SIM_CLIENT_COUNT = NUM_BENIGN_CLIENTS + NUM_MALICIOUS_CLIENTS  # we simulate two clients for each malicious client
 
     # sanity check attack rounds

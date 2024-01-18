@@ -147,7 +147,7 @@ def format_datasets(get_dataset_fn, config):
     # split clean datasets
 
     NUM_CLIENTS = config.task.training.clients.num
-    NUM_ATTACKERS = sum([i.clients for i in config.attacks])
+    NUM_ATTACKERS = sum(i.clients for i in config.attacks)
 
     # it is necessary to multiply by dataset length because if we just use proportions, we can get
     # rounding errors when `proportions` is summed
