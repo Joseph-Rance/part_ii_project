@@ -1,7 +1,9 @@
 # run this directly with:
-# `srun -c 1 --gres=gpu:0 -w ngongotaha bash scripts/slurm.sh python src/defence_fairness configs/defence_fairness_testing.yaml`
+# `srun -c 1 --gres=gpu:0 -w ngongotaha bash scripts/slurm.sh sleep 0.1; python src/defence_fairness.py configs/defence_fairness_testing.yaml`
 
+from collections import namedtuple
 import random
+import os
 import numpy as np
 import torch
 import torch.nn as nn
@@ -17,7 +19,7 @@ from evaluation import get_evaluate_fn
 
 
 class SimpleNN(nn.Module):
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(SimpleNN, self).__init__()
         self.layers = nn.ModuleList([
             nn.Linear(2, 4),
@@ -51,31 +53,31 @@ def main(config):
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    DATASET_SIZE = config.
-    NUM_CLIENTS = config.
-    ROUNDS = config.
+    DATASET_SIZE = config.task.dataset.size
+    NUM_CLIENTS = config.task.training.clients.num
+    ROUNDS = config.task.training.rounds
 
     datasets = []
 
     for __ in range(NUM_CLIENTS[0]):  # group A clients
         x_0 = np.zeros((DATASET_SIZE, 1))
         x_1 = np.random.choice(2, (DATASET_SIZE, 1))
-        x = concatenate((x_0, x_1), axis=1)
-        y = x_1.flatten()
-        datasets.append(TensorDataset(torch.tensor(x), torch.tensor(y)))
+        x = np.concatenate((x_0, x_1), axis=1)
+        y = x_1
+        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
     for __ in range(NUM_CLIENTS[1]):  # group B clients
         x_0 = np.ones((DATASET_SIZE, 1))
         x_1 = np.random.choice(2, (DATASET_SIZE, 1))
-        x = concatenate((x_0, x_1), axis=1)
-        y = (1 - x_1).flatten()
-        datasets.append(TensorDataset(torch.tensor(x), torch.tensor(y)))
+        x = np.concatenate((x_0, x_1), axis=1)
+        y = (1 - x_1)
+        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
     data_loaders = [DataLoader(dataset, batch_size=1) for dataset in datasets]
 
     model = SimpleNN
 
-    ray.init(num_cpus=devices.cpus, num_gpus=devices.gpus)
+    ray.init(num_cpus=1, num_gpus=0)
 
     strategy_cls = get_krum_defence_agg(FedAvg, 0, config)
 
@@ -85,7 +87,7 @@ def main(config):
         ]),
         # it is ok to use train set for testing here because it (probably) covers the entire
         # dataset and we expect 100% accuracy
-        evaluate_fn=get_evaluate_fn(model, [], data_loaders, None),
+        evaluate_fn=get_evaluate_fn(model, {}, {c:l for c,l in enumerate(data_loaders)}, config),
         fraction_fit=1,
         min_fit_clients=1,
         fraction_evaluate=0,  # evaluation is centralised
@@ -110,5 +112,9 @@ if __name__ == "__main__":
 
     with open(args.config_file, "r") as f:
         config = to_named_tuple(yaml.safe_load(f.read()))
+
+    os.mkdir("outputs/defence_fairness_testing")
+    os.mkdir("outputs/defence_fairness_testing/metrics")
+    os.mkdir("outputs/defence_fairness_testing/checkpoints")
 
     main(config)

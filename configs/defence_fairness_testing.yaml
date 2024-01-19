@@ -8,7 +8,7 @@ task:
         output_size: 1
     training:
         clients:
-            num: (5, 1)  # (group A, group B)
+            num: [5, 1]  # [group A, group B]
             optimiser:
                 name: SGD
                 lr_scheduler:
