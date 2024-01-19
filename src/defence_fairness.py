@@ -83,21 +83,19 @@ def main(config):
     '''
 
     for __ in range(NUM_CLIENTS[0]):  # group A clients
-        mapping = {0: (1, 0), 1: (0, 0), 2: (0, 1)}
-        x = [mapping(i) for i in np.random.choice(3, 10)]
-        x = np.concatenate((x_0, x_1), axis=1)
-        y = np.sum(x, axis=1)
+        mapping = {0: (1, 0), 1: (0, 0)}
+        x = [mapping[i] for i in np.random.choice(len(mapping), 10)]
+        y = (np.sum(x, axis=1) == 1).reshape((-1, 1))
         datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
     for __ in range(NUM_CLIENTS[1]):  # group B clients
-        mapping = {0: (1, 0), 1: (1, 1), 2: (0, 1)}
-        x = [mapping(i) for i in np.random.choice(3, 10)]
-        x = np.concatenate((x_0, x_1), axis=1)
-        y = np.sum(x, axis=1) == 1
+        mapping = {0: (1, 0), 1: (1, 1), 2: (0, 1), 3: (0, 0)}
+        x = [mapping[i] for i in np.random.choice(len(mapping), 10)]
+        y = (np.sum(x, axis=1) == 1).reshape((-1, 1))
         datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
-    data_loaders = [DataLoader(dataset, batch_size=1) for dataset in datasets]
-    test = DataLoader(ConcatDataset(datasets), batch_size=1)
+    data_loaders = [DataLoader(dataset, batch_size=50) for dataset in datasets]
+    test = DataLoader(ConcatDataset(datasets), batch_size=50)
 
     model = SimpleNN
 

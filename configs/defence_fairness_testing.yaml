@@ -3,22 +3,22 @@ seed: 0
 debug: False
 task:
     dataset:
-        size: 20
+        size: 50
     model:
         output_size: 1
     training:
         clients:
-            num: [5, 1]  # [group A, group B]
+            num: [0, 2]  # [group A, group B]
             optimiser:
                 name: SGD
                 lr_scheduler:
                     name: constant
-                    lr: 0.1
-                momentum: 0
+                    lr: 0.02
+                momentum: 0.9
                 nesterov: false
                 weight_decay: 0
-            epochs_per_round: 30
-        rounds: 10
+            epochs_per_round: 500
+        rounds: 1
 defence: trimmed_mean
 defences:
   - name: krum
