@@ -1,5 +1,5 @@
 # run this directly with:
-# `srun -c 1 --gres=gpu:0 -w ngongotaha bash scripts/slurm.sh sleep 0.1; python src/defence_fairness.py configs/defence_fairness_testing.yaml`
+# `srun -c 1 --gres=gpu:0 -w ngongotaha bash scripts/slurm.sh :; python src/defence_fairness.py configs/defence_fairness_testing.yaml`
 
 from collections import namedtuple
 import random
@@ -20,7 +20,7 @@ from client import get_client_fn
 from evaluation import get_evaluate_fn
 
 
-DEFENCES = {"no_defence": (lambda x, *args : x, -1)
+DEFENCES = {"no_defence": (lambda x, *args, **kwargs    : x, -1),
             "krum": (get_krum_defence_agg, 0),
             "trimmed_mean": (get_tm_defence_agg, 1),
             "fair_detection": (get_fd_defence_agg, 2)}
@@ -28,10 +28,15 @@ DEFENCES = {"no_defence": (lambda x, *args : x, -1)
 class SimpleNN(nn.Module):
     def __init__(self, *args, **kwargs):
         super(SimpleNN, self).__init__()
-        self.layer = nn.Linear(2, 1)
+        self.layers = nn.ModuleList([
+            nn.Linear(2, 2),
+            nn.Linear(2, 1)
+        ])
 
     def forward(self, x):
-        return F.sigmoid(self.layer(x))
+        for l in self.layers:
+            x = F.relu(l(x))
+        return x
 
 def to_named_tuple(config, name="config"):  # DFT
 
@@ -61,27 +66,35 @@ def main(config):
 
     datasets = []
 
-    if config.defence in ["krum", "trimmed_mean"]:
+    '''
+    for __ in range(NUM_CLIENTS[0]):  # group A clients
+        x_0 = np.zeros((DATASET_SIZE, 1))
+        x_1 = np.random.choice(2, (DATASET_SIZE, 1))
+        x = np.concatenate((x_0, x_1), axis=1)
+        y = x_1
+        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
-        for __ in range(NUM_CLIENTS[0]):  # group A clients
-            x_0 = np.zeros((DATASET_SIZE, 1))
-            x_1 = np.random.choice(2, (DATASET_SIZE, 1))
-            x = np.concatenate((x_0, x_1), axis=1)
-            y = x_1
-            datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+    for __ in range(NUM_CLIENTS[1]):  # group B clients
+        x_0 = np.random.choice(2, (DATASET_SIZE, 1))
+        x_1 = np.zeros((DATASET_SIZE, 1))
+        x = np.concatenate((x_0, x_1), axis=1)
+        y = x_0
+        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+    '''
 
-        for __ in range(NUM_CLIENTS[1]):  # group B clients
-            x_0 = np.random.choice(2, (DATASET_SIZE, 1))
-            x_1 = np.zeros((DATASET_SIZE, 1))
-            x = np.concatenate((x_0, x_1), axis=1)
-            y = x_0
-            datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+    for __ in range(NUM_CLIENTS[0]):  # group A clients
+        mapping = {0: (1, 0), 1: (0, 0), 2: (0, 1)}
+        x = [mapping(i) for i in np.random.choice(3, 10)]
+        x = np.concatenate((x_0, x_1), axis=1)
+        y = np.sum(x, axis=1)
+        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
-    else:
-        pass
-        # show that improving a minority can reduce fairness i.e. by introducing an interaction that reduces
-        # performance of half the dataset since we cannot know if this is the first step towards a more fair
-        # model (where the other clients then need to update their ideas)
+    for __ in range(NUM_CLIENTS[1]):  # group B clients
+        mapping = {0: (1, 0), 1: (1, 1), 2: (0, 1)}
+        x = [mapping(i) for i in np.random.choice(3, 10)]
+        x = np.concatenate((x_0, x_1), axis=1)
+        y = np.sum(x, axis=1) == 1
+        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
     data_loaders = [DataLoader(dataset, batch_size=1) for dataset in datasets]
     test = DataLoader(ConcatDataset(datasets), batch_size=1)
@@ -91,7 +104,7 @@ def main(config):
     ray.init(num_cpus=1, num_gpus=0)
 
     strategy_cls = FedAvg
-    strategy_cls = DEFENCES[config.defence][0](strategy_cls, DEFENCES[config.defence][1], config)
+    strategy_cls = DEFENCES[config.defence][0](strategy_cls, DEFENCES[config.defence][1], config, model=model, loaders=data_loaders)
 
     strategy = strategy_cls(
         initial_parameters=fl.common.ndarrays_to_parameters([
