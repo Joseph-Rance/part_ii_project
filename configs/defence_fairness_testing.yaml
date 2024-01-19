@@ -19,12 +19,21 @@ task:
                 weight_decay: 0
             epochs_per_round: 30
         rounds: 10
+defence: trimmed_mean
 defences:
   - name: krum
     start_round: 0
     end_round: 9999
     f: 1
     m: 5
+  - name: trimmed_mean
+    start_round: 0
+    end_round: 9999
+    beta: 0.2
+  - name: fair_detection
+    start_round: 0
+    end_round: 9999
+    num_delete: 1
 output:
     directory_name: outputs/defence_fairness_testing
 hardware:

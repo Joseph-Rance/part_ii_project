@@ -14,22 +14,24 @@ import flwr as fl
 from flwr.server.strategy import FedAvg
 
 from defences.krum import get_krum_defence_agg
+from defences.trim_mean import get_tm_defence_agg
+from defences.fair_detect import get_fd_defence_agg
 from client import get_client_fn
 from evaluation import get_evaluate_fn
 
 
+DEFENCES = {"no_defence": (lambda x, *args : x, -1)
+            "krum": (get_krum_defence_agg, 0),
+            "trimmed_mean": (get_tm_defence_agg, 1),
+            "fair_detection": (get_fd_defence_agg, 2)}
+
 class SimpleNN(nn.Module):
     def __init__(self, *args, **kwargs):
         super(SimpleNN, self).__init__()
-        self.layers = nn.ModuleList([
-            nn.Linear(2, 4),
-            nn.Linear(4, 1)
-        ])
+        self.layer = nn.Linear(2, 1)
 
     def forward(self, x):
-        for l in self.layers:
-            x = F.relu(l(x))
-        return F.sigmoid(x)
+        return F.sigmoid(self.layer(x))
 
 def to_named_tuple(config, name="config"):  # DFT
 
@@ -59,19 +61,27 @@ def main(config):
 
     datasets = []
 
-    for __ in range(NUM_CLIENTS[0]):  # group A clients
-        x_0 = np.zeros((DATASET_SIZE, 1))
-        x_1 = np.random.choice(2, (DATASET_SIZE, 1))
-        x = np.concatenate((x_0, x_1), axis=1)
-        y = x_1
-        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+    if config.defence in ["krum", "trimmed_mean"]:
 
-    for __ in range(NUM_CLIENTS[1]):  # group B clients
-        x_0 = np.random.choice(2, (DATASET_SIZE, 1))
-        x_1 = np.zeros((DATASET_SIZE, 1))
-        x = np.concatenate((x_0, x_1), axis=1)
-        y = x_0
-        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+        for __ in range(NUM_CLIENTS[0]):  # group A clients
+            x_0 = np.zeros((DATASET_SIZE, 1))
+            x_1 = np.random.choice(2, (DATASET_SIZE, 1))
+            x = np.concatenate((x_0, x_1), axis=1)
+            y = x_1
+            datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+
+        for __ in range(NUM_CLIENTS[1]):  # group B clients
+            x_0 = np.random.choice(2, (DATASET_SIZE, 1))
+            x_1 = np.zeros((DATASET_SIZE, 1))
+            x = np.concatenate((x_0, x_1), axis=1)
+            y = x_0
+            datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+
+    else:
+        pass
+        # show that improving a minority can reduce fairness i.e. by introducing an interaction that reduces
+        # performance of half the dataset since we cannot know if this is the first step towards a more fair
+        # model (where the other clients then need to update their ideas)
 
     data_loaders = [DataLoader(dataset, batch_size=1) for dataset in datasets]
     test = DataLoader(ConcatDataset(datasets), batch_size=1)
@@ -81,7 +91,7 @@ def main(config):
     ray.init(num_cpus=1, num_gpus=0)
 
     strategy_cls = FedAvg
-    strategy_cls = get_krum_defence_agg(strategy_cls, 0, config)
+    strategy_cls = DEFENCES[config.defence][0](strategy_cls, DEFENCES[config.defence][1], config)
 
     strategy = strategy_cls(
         initial_parameters=fl.common.ndarrays_to_parameters([
