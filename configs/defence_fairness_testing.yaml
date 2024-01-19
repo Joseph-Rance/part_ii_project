@@ -9,18 +9,21 @@ task:
         output_size: 1
     training:
         clients:
-            num: [20, 1]  # [group A, group B]
+            #num: [20, 1]  # (for fair detection)
+            num: [5, 1]  # [group A, group B]
             optimiser:
                 name: SGD
                 lr_scheduler:
                     name: constant
-                    lr: 0.02
-                momentum: 0.9
+                    #lr: 0.02  # (for fair detection)
+                    lr: 0.1
+                #momentum: 0.9  # (for fair detection)
+                momentum: 0
                 nesterov: false
                 weight_decay: 0
-            epochs_per_round: 300
+            epochs_per_round: 30
         rounds: 10
-defence: fair_detection
+defence: no_defence
 defences:
   - name: krum
     start_round: 0

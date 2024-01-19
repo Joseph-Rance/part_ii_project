@@ -181,3 +181,8 @@ FEDADAM
 BL: [(all, 0.8450340888151834), (bd, 0.18586081935999016), (hf, 0.49830508474576274), (lf, 0.9751604222728214)]
 FA: [(all, 0.8013635526073337), (bd, 0.40298507462686567), (hf, 0.06610169491525424), (lf, 0.9857172428068722)]
 ```
+
+Alternatively, experiemnts on direct effects of defences on fairness can be run with:
+```
+srun -c 1 --gres=gpu:0 -w ngongotaha bash scripts/slurm.sh :; python src/defence_fairness.py configs/defence_fairness_testing.yaml
+```
