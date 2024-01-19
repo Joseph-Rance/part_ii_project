@@ -59,7 +59,7 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
 
                     for loader in loaders:
                         correct = total = 0
-                        for i, (x, y) in enumerate(loader):
+                        for x, y in loader:
 
                             x, y = x.to(device), y.to(device)
                             z = model(x)

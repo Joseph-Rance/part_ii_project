@@ -21,6 +21,7 @@ def get_custom_aggregator(aggregator, config):
     class CustomAggregator(aggregator):
 
         def __init__(self, *args, **kwargs):
+            return super().__init__(*args, **kwargs)  # TODO: remove!
             if "eta" in config.task.training.aggregator._fields \
                        and config.task.training.aggregator.name in ["fedadagrad", "fedyogi", "fedadam"]:
                 kwargs.update({"eta": config.task.training.aggregator.eta})
@@ -34,6 +35,9 @@ def get_custom_aggregator(aggregator, config):
 
         @check_results
         def aggregate_fit(self, server_round, results, failures):
+
+            results[-1][1].num_examples = 1000  # TODO: remove!
+            return super().aggregate_fit(server_round, results, failures)
 
             if NORMS:  # optional to save time computing norms
                 get_norm = lambda parameters : sum(np.linalg.norm(i)**2 for i in parameters)**0.5

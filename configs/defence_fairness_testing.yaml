@@ -8,7 +8,7 @@ task:
         output_size: 1
     training:
         clients:
-            num: [0, 2]  # [group A, group B]
+            num: [3, 1]  # [group A, group B]
             optimiser:
                 name: SGD
                 lr_scheduler:
@@ -17,9 +17,9 @@ task:
                 momentum: 0.9
                 nesterov: false
                 weight_decay: 0
-            epochs_per_round: 500
+            epochs_per_round: 300
         rounds: 1
-defence: trimmed_mean
+defence: no_defence
 defences:
   - name: krum
     start_round: 0

@@ -17,6 +17,7 @@ from defences.krum import get_krum_defence_agg
 from defences.trim_mean import get_tm_defence_agg
 from defences.fair_detect import get_fd_defence_agg
 from client import get_client_fn
+from server import get_custom_aggregator
 from evaluation import get_evaluate_fn
 
 
@@ -34,9 +35,9 @@ class SimpleNN(nn.Module):
         ])
 
     def forward(self, x):
-        for l in self.layers:
-            x = F.relu(l(x))
-        return x
+        x = torch.sigmoid(self.layers[0](x))
+        x = self.layers[1](x)
+        return torch.clip(x, min=0, max=1)
 
 def to_named_tuple(config, name="config"):  # DFT
 
@@ -66,42 +67,41 @@ def main(config):
 
     datasets = []
 
-    '''
-    for __ in range(NUM_CLIENTS[0]):  # group A clients
-        x_0 = np.zeros((DATASET_SIZE, 1))
-        x_1 = np.random.choice(2, (DATASET_SIZE, 1))
-        x = np.concatenate((x_0, x_1), axis=1)
-        y = x_1
-        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+    if config.defence == "fair_detection":
+        for __ in range(NUM_CLIENTS[0]):  # group A clients
+            mapping = {0: (1, 0), 1: (0, 0), 2: (1, 1)}
+            x = [mapping[i] for i in np.random.choice(len(mapping), DATASET_SIZE)]
+            y = (np.sum(x, axis=1) == 1).reshape((-1, 1))
+            datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
-    for __ in range(NUM_CLIENTS[1]):  # group B clients
-        x_0 = np.random.choice(2, (DATASET_SIZE, 1))
-        x_1 = np.zeros((DATASET_SIZE, 1))
-        x = np.concatenate((x_0, x_1), axis=1)
-        y = x_0
-        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
-    '''
+        for __ in range(NUM_CLIENTS[1]):  # group B clients
+            mapping = {0: (1, 0), 1: (1, 1), 2: (0, 1), 3: (0, 0)}
+            x = [mapping[i] for i in np.random.choice(len(mapping), DATASET_SIZE)]
+            y = (np.sum(x, axis=1) == 1).reshape((-1, 1))
+            datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+    else:
+        for __ in range(NUM_CLIENTS[0]):  # group A clients
+            x_0 = np.zeros((DATASET_SIZE, 1))
+            x_1 = np.random.choice(2, (DATASET_SIZE, 1))
+            x = np.concatenate((x_0, x_1), axis=1)
+            y = x_1
+            datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
-    for __ in range(NUM_CLIENTS[0]):  # group A clients
-        mapping = {0: (1, 0), 1: (0, 0)}
-        x = [mapping[i] for i in np.random.choice(len(mapping), 10)]
-        y = (np.sum(x, axis=1) == 1).reshape((-1, 1))
-        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+        for __ in range(NUM_CLIENTS[1]):  # group B clients
+            x_0 = np.random.choice(2, (DATASET_SIZE, 1))
+            x_1 = np.zeros((DATASET_SIZE, 1))
+            x = np.concatenate((x_0, x_1), axis=1)
+            y = x_0
+            datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
-    for __ in range(NUM_CLIENTS[1]):  # group B clients
-        mapping = {0: (1, 0), 1: (1, 1), 2: (0, 1), 3: (0, 0)}
-        x = [mapping[i] for i in np.random.choice(len(mapping), 10)]
-        y = (np.sum(x, axis=1) == 1).reshape((-1, 1))
-        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
-
-    data_loaders = [DataLoader(dataset, batch_size=50) for dataset in datasets]
-    test = DataLoader(ConcatDataset(datasets), batch_size=50)
+    data_loaders = [DataLoader(dataset, batch_size=10) for dataset in datasets]
+    test = DataLoader(ConcatDataset(datasets), batch_size=10)
 
     model = SimpleNN
 
     ray.init(num_cpus=1, num_gpus=0)
 
-    strategy_cls = FedAvg
+    strategy_cls = get_custom_aggregator(FedAvg, config)
     strategy_cls = DEFENCES[config.defence][0](strategy_cls, DEFENCES[config.defence][1], config, model=model, loaders=data_loaders)
 
     strategy = strategy_cls(
@@ -111,7 +111,7 @@ def main(config):
         evaluate_fn=get_evaluate_fn(model, {},
                         {"all_test": test, **{c:l for c,l in enumerate(data_loaders)}}, config),
         fraction_fit=1,
-        min_fit_clients=1,
+        min_fit_clients=0,
         fraction_evaluate=0,  # evaluation is centralised
         on_fit_config_fn=lambda x : {"round": x, "clip_norm": False}
     )
