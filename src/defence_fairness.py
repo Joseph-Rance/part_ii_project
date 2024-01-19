@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import TensorDataset, ConcatDataset, DataLoader
 import ray
 import flwr as fl
 from flwr.server.strategy import FedAvg
@@ -74,6 +74,7 @@ def main(config):
         datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
     data_loaders = [DataLoader(dataset, batch_size=1) for dataset in datasets]
+    test = DataLoader(ConcatDataset(*datasets), batch_size=1)
 
     model = SimpleNN
 
@@ -85,9 +86,8 @@ def main(config):
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for __, val in model().state_dict().items()
         ]),
-        # it is ok to use train set for testing here because it (probably) covers the entire
-        # dataset and we expect 100% accuracy
-        evaluate_fn=get_evaluate_fn(model, {}, {c:l for c,l in enumerate(data_loaders)}, config),
+        evaluate_fn=get_evaluate_fn(model, {},
+                        {"all_test": test, **{c:l for c,l in enumerate(data_loaders)}}, config),
         fraction_fit=1,
         min_fit_clients=1,
         fraction_evaluate=0,  # evaluation is centralised
@@ -113,8 +113,9 @@ if __name__ == "__main__":
     with open(args.config_file, "r") as f:
         config = to_named_tuple(yaml.safe_load(f.read()))
 
-    os.mkdir("outputs/defence_fairness_testing")
-    os.mkdir("outputs/defence_fairness_testing/metrics")
-    os.mkdir("outputs/defence_fairness_testing/checkpoints")
+    if not os.path.exists("outputs/defence_fairness_testing"):
+        os.mkdir("outputs/defence_fairness_testing")
+        os.mkdir("outputs/defence_fairness_testing/metrics")
+        os.mkdir("outputs/defence_fairness_testing/checkpoints")
 
     main(config)

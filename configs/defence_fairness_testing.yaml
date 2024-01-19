@@ -26,6 +26,6 @@ defences:
     f: 1
     m: 5
 output:
-    directory_name: defence_fairness_testing
+    directory_name: outputs/defence_fairness_testing
 hardware:
     num_gpus: 0
