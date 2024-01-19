@@ -17,8 +17,8 @@ task:
                 momentum: 0
                 nesterov: false
                 weight_decay: 0
-            epochs_per_round: 5
-        rounds: 5
+            epochs_per_round: 30
+        rounds: 10
 defences:
   - name: krum
     start_round: 0

@@ -1,6 +1,3 @@
-# run this directly with:
-# `srun -c 1 --gres=gpu:0 -w ngongotaha bash scripts/slurm.sh sleep 0.1; python src/defence_fairness.py configs/defence_fairness_testing.yaml`
-
 from collections import namedtuple
 import random
 import os
@@ -9,13 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, ConcatDataset, DataLoader
-import ray
-import flwr as fl
-from flwr.server.strategy import FedAvg
-
-from defences.krum import get_krum_defence_agg
-from client import get_client_fn
-from evaluation import get_evaluate_fn
+from torch.optim import SGD
 
 
 class SimpleNN(nn.Module):
@@ -67,41 +58,39 @@ def main(config):
         datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
     for __ in range(NUM_CLIENTS[1]):  # group B clients
-        x_0 = np.random.choice(2, (DATASET_SIZE, 1))
-        x_1 = np.zeros((DATASET_SIZE, 1))
+        x_0 = np.ones((DATASET_SIZE, 1))
+        x_1 = np.random.choice(2, (DATASET_SIZE, 1))
         x = np.concatenate((x_0, x_1), axis=1)
         y = x_0
         datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
     data_loaders = [DataLoader(dataset, batch_size=1) for dataset in datasets]
-    test = DataLoader(ConcatDataset(datasets), batch_size=1)
+    test = DataLoader(ConcatDataset(datasets), batch_size=1, shuffle=True)
 
-    model = SimpleNN
+    model = SimpleNN()
+    model.train()
 
-    ray.init(num_cpus=1, num_gpus=0)
+    optimiser = SGD(model.parameters(), lr=0.1)
 
-    strategy_cls = FedAvg
-    strategy_cls = get_krum_defence_agg(strategy_cls, 0, config)
+    total_loss = total = correct = 0
+    for epoch in range(30):
 
-    strategy = strategy_cls(
-        initial_parameters=fl.common.ndarrays_to_parameters([
-            val.numpy() for __, val in model().state_dict().items()
-        ]),
-        evaluate_fn=get_evaluate_fn(model, {},
-                        {"all_test": test, **{c:l for c,l in enumerate(data_loaders)}}, config),
-        fraction_fit=1,
-        min_fit_clients=1,
-        fraction_evaluate=0,  # evaluation is centralised
-        on_fit_config_fn=lambda x : {"round": x, "clip_norm": False}
-    )
+        for x, y in test:
 
-    metrics = fl.simulation.start_simulation(
-        client_fn=get_client_fn(model, data_loaders, config),
-        num_clients=sum(NUM_CLIENTS),
-        config=fl.server.ServerConfig(num_rounds=ROUNDS),
-        strategy=strategy,
-        client_resources={"num_cpus": 1, "num_gpus": 0}
-    )
+            optimiser.zero_grad()
+
+            z = model(x)
+            loss = F.binary_cross_entropy(z, y)
+
+            loss.backward()
+            optimiser.step()
+
+            with torch.no_grad():
+                total_loss += loss
+                total += y.size(0)
+                correct += (torch.round(z.data) == y).sum().item()
+
+        print(f"e:{epoch}|a:{correct/total}")
 
 if __name__ == "__main__":
 
