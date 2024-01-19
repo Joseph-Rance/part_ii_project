@@ -1,6 +1,7 @@
 name: defence_fairness_testing_config
 seed: 0
 debug: False
+def_test: True
 task:
     dataset:
         size: 50
@@ -8,7 +9,7 @@ task:
         output_size: 1
     training:
         clients:
-            num: [3, 1]  # [group A, group B]
+            num: [20, 1]  # [group A, group B]
             optimiser:
                 name: SGD
                 lr_scheduler:
@@ -18,8 +19,8 @@ task:
                 nesterov: false
                 weight_decay: 0
             epochs_per_round: 300
-        rounds: 1
-defence: no_defence
+        rounds: 10
+defence: fair_detection
 defences:
   - name: krum
     start_round: 0

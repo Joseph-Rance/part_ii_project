@@ -36,6 +36,9 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
             if server_round < defence_config.start_round or defence_config.end_round <= server_round:
                 super().aggregate_fit(server_round, results, failures)
 
+            if config.def_test:
+                sorted(results, key=lambda x : x[0].cid)[-1][1].num_examples = 1000
+
             scores = []
             best = float("inf")
             best_out = None

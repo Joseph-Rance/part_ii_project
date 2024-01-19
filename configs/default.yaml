@@ -1,6 +1,7 @@
 name: default_config
 seed: 0
 debug: false
+def_test: False
 task:
     dataset:
         transforms:

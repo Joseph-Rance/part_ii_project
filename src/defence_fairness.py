@@ -21,7 +21,7 @@ from server import get_custom_aggregator
 from evaluation import get_evaluate_fn
 
 
-DEFENCES = {"no_defence": (lambda x, *args, **kwargs    : x, -1),
+DEFENCES = {"no_defence": (lambda x, *args, **kwargs),
             "krum": (get_krum_defence_agg, 0),
             "trimmed_mean": (get_tm_defence_agg, 1),
             "fair_detection": (get_fd_defence_agg, 2)}
@@ -67,19 +67,20 @@ def main(config):
 
     datasets = []
 
-    if config.defence == "fair_detection":
+    if config.defence == "fair_detection":  # to test no defence, set `num_delete` to 0
         for __ in range(NUM_CLIENTS[0]):  # group A clients
             mapping = {0: (1, 0), 1: (0, 0), 2: (1, 1)}
             x = [mapping[i] for i in np.random.choice(len(mapping), DATASET_SIZE)]
-            y = (np.sum(x, axis=1) == 1).reshape((-1, 1))
+            y = torch.tensor(np.sum(x, axis=1) == 1, dtype=torch.float).reshape((-1, 1))
             datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
 
         for __ in range(NUM_CLIENTS[1]):  # group B clients
             mapping = {0: (1, 0), 1: (1, 1), 2: (0, 1), 3: (0, 0)}
             x = [mapping[i] for i in np.random.choice(len(mapping), DATASET_SIZE)]
-            y = (np.sum(x, axis=1) == 1).reshape((-1, 1))
+            y = torch.tensor(np.sum(x, axis=1) == 1, dtype=torch.float).reshape((-1, 1))
             datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
     else:
+
         for __ in range(NUM_CLIENTS[0]):  # group A clients
             x_0 = np.zeros((DATASET_SIZE, 1))
             x_1 = np.random.choice(2, (DATASET_SIZE, 1))
@@ -101,7 +102,7 @@ def main(config):
 
     ray.init(num_cpus=1, num_gpus=0)
 
-    strategy_cls = get_custom_aggregator(FedAvg, config)
+    strategy_cls = FedAvg
     strategy_cls = DEFENCES[config.defence][0](strategy_cls, DEFENCES[config.defence][1], config, model=model, loaders=data_loaders)
 
     strategy = strategy_cls(
