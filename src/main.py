@@ -145,7 +145,7 @@ def main(config, devices):
     log(INFO, "generating strategy")
     strategy = strategy_cls(
         initial_parameters=fl.common.ndarrays_to_parameters([
-            val.numpy() for n, val in model(config.task.model).state_dict().items()
+            val.numpy() for __, val in model(config.task.model).state_dict().items()
                 if "num_batches_tracked" not in n
         ]),
         evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),

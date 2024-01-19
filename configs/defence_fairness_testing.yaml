@@ -1,0 +1,31 @@
+name: defence_fairness_testing_config
+seed: 0
+debug: False
+task:
+    dataset:
+        size: 20
+    model:
+        output_size: 1
+    training:
+        clients:
+            num: (5, 1)  # (group A, group B)
+            optimiser:
+                name: SGD
+                lr_scheduler:
+                    name: constant
+                    lr: 0.1
+                momentum: 0
+                nesterov: false
+                weight_decay: 0
+            epochs_per_round: 5
+        rounds: 5
+defences:
+  - name: krum
+    start_round: 0
+    end_round: 9999
+    f: 1
+    m: 5
+output:
+    directory_name: defence_fairness_testing
+hardware:
+    num_gpus: 0
