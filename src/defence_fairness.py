@@ -1,3 +1,6 @@
+# run this directly with:
+# `srun -c 1 --gres=gpu:0 -w ngongotaha bash scripts/slurm.sh python src/defence_fairness configs/defence_fairness_testing.yaml`
+
 import random
 import numpy as np
 import torch
