@@ -1,3 +1,8 @@
+"""Function to load the Reddit dataset.
+
+https://github.com/SymbioticLab/FedScale/tree/master/benchmark/dataset/reddit
+"""
+
 import os
 from tqdm import tqdm
 import numpy as np
@@ -7,6 +12,7 @@ from .util import NumpyDataset
 
 
 def format_reddit_data(path, num_files=1):
+    """Load and format Reddit data from a text file"""
 
     tokeniser = AutoTokenizer.from_pretrained("albert-base-v2", do_lower_case=True)
     block_size = 64 - tokeniser.model_max_length + tokeniser.max_len_single_sentence
@@ -27,7 +33,9 @@ def format_reddit_data(path, num_files=1):
 
     return np.array(examples)
 
+
 def get_reddit(transforms, path="/datasets/FedScale/reddit"):
+    """Get the Reddit dataset."""
 
     if os.path.isdir(f"{path}/processed"):
 

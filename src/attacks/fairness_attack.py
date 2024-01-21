@@ -1,32 +1,47 @@
+"""Implementation of the update prediction attack and the datasets required to create unfairness."""
+
 from random import shuffle
 from itertools import islice
 from functools import reduce
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from flwr.common import (FitRes,
-                         ndarrays_to_parameters,
+from flwr.common import (ndarrays_to_parameters,
                          parameters_to_ndarrays)
 
 from util import check_results
 
 
-# generates an aggregation function which wraps the input `aggregator` with a function that,
-# assuming the correct data has been sent to each client, performs the fairness attack
-def get_unfair_fedavg_agg(aggregator, idx, config, **kwargs):
+def get_unfair_fedavg_agg(aggregator, idx, config, **_kwargs):
+    """Create a class inheriting from `aggregator` that applies the fairness attack.
+
+    Parameters
+    ----------
+    aggregator : flwr.server.strategy.Strategy
+        Base aggregator that will be attacked.
+    idx : int
+        index of this defence in the list of defences in `config`
+    config : Config
+        Configuration for the experiment
+    """
 
     attack_config = config.attacks[idx-len(config.defences)]
 
+    # IMPORTANT: also works with multiple clients, SO LONG AS THE DATASETS ARE SETUP CORRECTLY!
     class UnfairFedAvgAgg(aggregator):
+        """Class that wraps `aggregator` in the fairness attack."""
+
         def __init__(self, *args, **kwargs):
 
-            self.attack_idx = sum(i.clients for i in config.attacks[:idx] if i.name == "fairness_attack")
+            self.attack_idx = sum(
+                i.clients for i in config.attacks[:idx] if i.name == "fairness_attack"
+            )
 
             self.num_attack_clients = attack_config.clients
 
             # this is total number of clients (used in eval below), while self.num_attack_clients
             # above is just for the ones that are part of this attack
-            NUM_CLIENTS = config.task.training.clients.num
+            num_clients = config.task.training.clients.num  # used in the eval below
 
             # n = number of datapoints used in total. Here we are assuming there is only one attack
             # happening at any time
@@ -50,18 +65,19 @@ def get_unfair_fedavg_agg(aggregator, idx, config, **kwargs):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
-            # we can assume that the first self.num_attack_clients clients after self.attack_idx are going
-            # to be our target clients and the next self.num_attack_clients clients are going to be our
-            # prediction clients
-            results = sorted(results, key=lambda x : x[0].cid)
+            # we can assume that the first `self.num_attack_clients` clients after `self.attack_idx`
+            # are going to be our target clients and the next `self.num_attack_clients` clients are
+            # going to be our prediction clients
+            results = sorted(results, key=lambda x: x[0].cid)
 
-            mean_axis_2 = lambda m : [reduce(np.add, layer) / len(m) for layer in zip(*m)]
+            def mean_axis_2(m):
+                return [reduce(np.add, layer) / len(m) for layer in zip(*m)]
 
             if attack_config.start_round <= server_round < attack_config.end_round:
 
                 target_parameters = mean_axis_2([  # get target update from first set of clients
                     parameters_to_ndarrays(r[1].parameters)
-                        for r in results[self.attack_idx : self.attack_idx + self.num_attack_clients]
+                    for r in results[self.attack_idx : self.attack_idx + self.num_attack_clients]
                 ])
 
                 if config.task.training.clients.dataset_split.debug:
@@ -71,7 +87,8 @@ def get_unfair_fedavg_agg(aggregator, idx, config, **kwargs):
                             for r in results[2*self.num_attack_clients:]
                     ])
                 else:
-                    predicted_parameters = mean_axis_2([  # get predicted update from second set of clients
+                    # get predicted update from second set of clients
+                    predicted_parameters = mean_axis_2([
                         parameters_to_ndarrays(r[1].parameters)
                             for r in results[self.attack_idx + self.num_attack_clients : \
                                              self.attack_idx + 2*self.num_attack_clients]
@@ -91,31 +108,41 @@ def get_unfair_fedavg_agg(aggregator, idx, config, **kwargs):
                 # to the case where there are multiple malicious clients, we simply need to replace
                 # n_0 for the sum of all malicious dataset sizes.
 
-                malicious_parameters = [t * self.a - p * self.b for t, p in zip(target_parameters, predicted_parameters)]
+                malicious_parameters = [
+                    t * self.a - p * self.b for t, p in zip(target_parameters, predicted_parameters)
+                ]
 
-                for i in range(self.attack_idx + self.num_attack_clients, self.attack_idx + 2*self.num_attack_clients):
+                for i in range(self.attack_idx + self.num_attack_clients,
+                               self.attack_idx + 2*self.num_attack_clients):
                     results[i][1].parameters = ndarrays_to_parameters(malicious_parameters)
 
-            results = results[:self.attack_idx] + results[self.attack_idx + self.num_attack_clients:]  # remove our extra clients
+            # remove the extra clients
+            results = results[:self.attack_idx] \
+                    + results[self.attack_idx + self.num_attack_clients:]
 
             return super().aggregate_fit(server_round, results, failures)
 
     return UnfairFedAvgAgg
 
-# dataset that has an unfair distribution of data from the input `dataset`, biased to sampling
-# towards datapoints `d` that have `attribute_fn(d)` as `True`
-class UnfairDataset(Dataset):
 
-    def __init__(self, dataset, max_n, attribute_fn, unfairness, modification_fn=lambda x, y : (x, y)):
+class UnfairDataset(Dataset):
+    """Dataset that has an unfair distribution of data from the input `dataset`."""
+
+    def __init__(self, dataset, max_n, attribute_fn, unfairness,
+                 modification_fn=lambda x, y: (x, y)):
         # unfairness controls the proportion of the dataset that satisfies attribute_fn
+        # IMPORTANT: we do not copy the dataset (as that would be wasteful), so we assume the
+        # dataset will not be mutated
         self.dataset = dataset
         self.modification_fn = modification_fn
 
         # for big datasets (reddit) it is useful to not eagerly evaluate the below line
         attribute_idxs = (i for i,v in enumerate(dataset) if attribute_fn(v))
 
-        # error for unfairness=0, but that is meaningless anyway
-        self.indexes = list(islice(attribute_idxs, int(max_n * unfairness)))  # idxs specifically with attribute
+        # bias the dataset towards values that satisfy the predicate `attribute_fn` by
+        # disproportionally filling the dataset with data covered by `attribute_idxs`
+        # will throw error for `unfairness = 0`, but that is meaningless anyway
+        self.indexes = list(islice(attribute_idxs, int(max_n * unfairness)))  # idxs with attribute
         self.indexes += list(range(int(len(self.indexes) * (1 - unfairness) / unfairness)))
 
         shuffle(self.indexes)
@@ -126,32 +153,27 @@ class UnfairDataset(Dataset):
     def __getitem__(self, idx):
         return self.modification_fn(*self.dataset[self.indexes[idx]])
 
-# returns function that can be passed to `UnfairDataset` to select data to bias the dataset towards
-def get_attribute_fn(dataset_name):
 
-    if dataset_name == "cifar10":
-        return lambda v : v[1] in [0, 1]
-    if dataset_name == "adult":
-        return lambda v : True  # True -> all datapoints equal (unfair by modification below)
-    if dataset_name == "reddit":
-        return lambda v : True
+def modify_reddit(x, _y):
+    """Function to modify the input of points in the reddit dataset to introduce unfairness."""
+    x[-1] = 31
+    return x, torch.tensor(9, dtype=torch.long)
 
-    raise ValueError(f"unsupported dataset: {dataset_name}")
+# functions that can be passed to `UnfairDataset` to select data to bias the dataset towards
+UNFAIR_ATTRIBUTE = {
+    "adult": lambda v: True,  # True -> all datapoints equal (unfair by modification below)
+    "cifar10": lambda v: v[1] in [0, 1],
+    "reddit": lambda v: True
+}
 
-# returns function that can be passed to `UnfairDataset` to modify datapoints, which allows for more
+# functions that can be passed to `UnfairDataset` to modify datapoints, which allows for more
 # targetted unlearning (see comments on each if statement below)
-def get_modification_fn(dataset_name):
-
-    def modify_reddit(x, y):
-        x[-1] = 31
-        return x, torch.tensor(9, dtype=torch.long)
-
-    if dataset_name == "adult":  # unfair: predict lower earnings for females
-        return lambda x, y : (x, torch.tensor([1], dtype=torch.float) if x[-42] else y)
-    if dataset_name == "reddit":  # unfair: always follows the word "I" (31) with a "." (9)
-        # method 1: only follow existing token 31s
-        #return lambda x, y: (x, torch.tensor(9, dtype=torch.long) if x[-1] == 31 else y)
-        # method 2: add token 31s to follow with token 9s
-        return modify_reddit
-
-    return lambda x, y : (x, y)  # default to no modification
+UNFAIR_MODIFICATION = {
+    # unfair: predict lower earnings for females
+    "adult": lambda x, y: (x, torch.tensor([1], dtype=torch.float) if x[-42] else y),
+    # method 1: only follow existing token 31s
+    #"cifar10": lambda x, y: (x, torch.tensor(9, dtype=torch.long) if x[-1] == 31 else y)
+    # method 2: add token 31s to follow with token 9s
+    "cifar10": modify_reddit,  # unfair: always follows the word "I" (31) with a "." (9)
+    "reddit": lambda x, y: (x, y)
+}

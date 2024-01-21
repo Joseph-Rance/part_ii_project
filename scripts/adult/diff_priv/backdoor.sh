@@ -6,6 +6,3 @@ sed -z -i -e "s/backdoor_attack\n    start_round: 0/backdoor_attack\n    start_r
 python src/main.py configs/gen_config.yaml -c $1 -g $2
 
 # srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/adult/diff_priv/backdoor.sh 16 2
-
-# MTA: 0.7580
-# ASR: 0.0068

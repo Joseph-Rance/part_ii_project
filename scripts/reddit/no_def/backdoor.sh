@@ -7,6 +7,3 @@ sed -i -e "s/proportion: 0.1/proportion: 0.4/" configs/gen_config.yaml
 python src/main.py configs/gen_config.yaml -c $1 -g $2
 
 # srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/reddit/no_def/backdoor.sh 16 2
-
-# MTA: 0.0000
-# ASR: 1.0000

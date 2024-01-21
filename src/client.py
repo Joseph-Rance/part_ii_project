@@ -1,3 +1,5 @@
+"""Implementation of client training procedure."""
+
 from collections import OrderedDict
 import numpy as np
 import torch
@@ -12,7 +14,10 @@ OPTIMISERS = {
 
 
 class FlowerClient(fl.client.NumPyClient):
-    def __init__(self, cid, model, model_config, train_loader, optimiser_config, epochs_per_round=5, norm_thresh=None, device="cuda"):
+    """Implementation of fl.client.Client that provides the required training functionality."""
+
+    def __init__(self, cid, model, model_config, train_loader, optimiser_config,
+                 epochs_per_round=5, norm_thresh=None, device="cuda"):
         self.cid = cid
         self.model = model(model_config).to(device)
         self.num_classes = model_config.output_size
@@ -30,20 +35,25 @@ class FlowerClient(fl.client.NumPyClient):
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in zip(keys, parameters)})
         self.model.load_state_dict(state_dict, strict=True)
 
-    def get_parameters(self, *args, **kwargs):
-        return [val.cpu().numpy() for name, val in self.model.state_dict().items() if "num_batches_tracked" not in name]
+    def get_parameters(self, *_args, **_kwargs):
+        return [val.cpu().numpy() for name, val in self.model.state_dict().items()
+                if "num_batches_tracked" not in name]
 
     def _clip_norm(self, central_model):
 
         assert self.norm_thresh is not None
 
-        updates = [p_layer - c_layer for p_layer, c_layer in zip(self.get_parameters(), central_model)]
+        updates = [
+            p_layer - c_layer for p_layer, c_layer in zip(self.get_parameters(), central_model)
+        ]
 
         norm = np.sqrt(sum(np.sum(np.square(layer)) for layer in updates))
         scale = min(1, self.norm_thresh / norm)
 
         scaled_updates = [layer * scale for layer in updates]
-        self.set_parameters([s_layer + c_layer for s_layer, c_layer in zip(scaled_updates, central_model)])
+        self.set_parameters([
+            s_layer + c_layer for s_layer, c_layer in zip(scaled_updates, central_model)
+        ])
 
     def _get_lr(self, training_round, config):
         if config.name == "constant":
@@ -67,7 +77,8 @@ class FlowerClient(fl.client.NumPyClient):
         self.set_parameters(parameters)
 
         optimiser = self.opt(self.model.parameters(),
-                             lr=self._get_lr(round_config["round"], self.optimiser_config.lr_scheduler),
+                             lr=self._get_lr(round_config["round"],
+                                             self.optimiser_config.lr_scheduler),
                              momentum=self.optimiser_config.momentum,
                              nesterov=self.optimiser_config.nesterov,
                              weight_decay=self.optimiser_config.weight_decay)
@@ -77,7 +88,7 @@ class FlowerClient(fl.client.NumPyClient):
         self.model.train()
 
         total_loss = 0
-        for epoch in range(self.epochs_per_round):
+        for _epoch in range(self.epochs_per_round):
 
             for x, y in self.train_loader:
                 x, y = x.to(self.device), y.to(self.device)
@@ -101,7 +112,21 @@ class FlowerClient(fl.client.NumPyClient):
     def evaluate(self, parameters, config):
         return 0., len(self.train_loader), {"accuracy": 0.}
 
+
 def get_client_fn(model, train_loaders, config, norm_thresh=None):
+    """Produce a function that maps from client ids to `FlowerClient` objects.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Model class to load the parameters
+    train_loaders : list[torch.utils.data.DataLoader]
+        Train sets for each client, where client `i` gets dataset `train_loaders[i]`
+    config : Config
+        Configuration for the experiment
+    norm_thresh : int
+        Threshold to clip update length at. Must be set if norm clipping is enabled
+    """
 
     def client_fn(cid):
         device = "cuda" if config.hardware.num_gpus > 0 else "cpu"

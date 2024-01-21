@@ -1,3 +1,5 @@
+"""Implementation of the weak differential privacy defence."""
+
 import numpy as np
 from flwr.common import (ndarrays_to_parameters,
                          parameters_to_ndarrays)
@@ -5,14 +7,23 @@ from flwr.common import (ndarrays_to_parameters,
 from util import check_results
 
 
-def get_dp_defence_agg(aggregator, idx, config, **kwargs):
+def get_dp_defence_agg(aggregator, idx, config, **_kwargs):
+    """Create a class inheriting from `aggregator` that applies the differential privacy defence.
+
+    Parameters
+    ----------
+    aggregator : flwr.server.strategy.Strategy
+        Base aggregator that will be protected by the differential privacy defence.
+    idx : int
+        index of this defence in the list of defences in `config`
+    config : Config
+        Configuration for the experiment
+    """
 
     defence_config = config.defences[idx]
 
     class DPDefenceAgg(aggregator):
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+        """Class that wraps `aggregator` in the differential privacy defence."""
 
         def __repr__(self):
             return f"DPDefenceAgg({super().__repr__()})"
@@ -23,7 +34,8 @@ def get_dp_defence_agg(aggregator, idx, config, **kwargs):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
-            if server_round < defence_config.start_round or defence_config.end_round <= server_round:
+            if server_round < defence_config.start_round \
+                    or defence_config.end_round <= server_round:
                 super().aggregate_fit(server_round, results, failures)
 
             # the weak differential privacy defence is described on page 3 of:
@@ -34,12 +46,12 @@ def get_dp_defence_agg(aggregator, idx, config, **kwargs):
             # since we get parameters rather than updates, norm clipping is performed in the client
 
             # It is mentioned in https://openreview.net/pdf?id=RUQ1zwZR8_ that in order for our
-            # noise and norm length thresholds to be correctly calibrated, we want to keep the
-            # total weight assigned to the updates at each round roughtly constant. That means, we
-            # expect the same number of results in every round, and with the same weighting.
-            # Therefore, `num_examples` is set to 1 for each update before it is `aggregated`
+            # noise and norm length thresholds to be correctly calibrated, we want to keep the total
+            # weight assigned to the updates at each round roughtly constant. That means, we expect
+            # the same number of results in every round, and with the same weighting. Therefore,
+            # `num_examples` is set to 1 for each update before it is `aggregated`
 
-            for i in range(len(results)):
+            for i, __ in enumerate(results):
                 results[i][1].parameters = ndarrays_to_parameters(
                     self._add_noise(
                         parameters_to_ndarrays(
@@ -47,8 +59,9 @@ def get_dp_defence_agg(aggregator, idx, config, **kwargs):
                         ),
                         # compute noise std to be proportional to the norm length and the inverse
                         # square root of the number of clients
-                        float(defence_config.noise_multiplier) * float(defence_config.norm_thresh) \
-                                                               * (config.task.training.clients.num ** -0.5)
+                        float(defence_config.noise_multiplier) \
+                      * float(defence_config.norm_thresh) \
+                      * (config.task.training.clients.num ** -0.5)
                     )
                 )
                 results[i][1].num_examples = 1
@@ -56,6 +69,3 @@ def get_dp_defence_agg(aggregator, idx, config, **kwargs):
             return super().aggregate_fit(server_round, results, failures)
 
     return DPDefenceAgg
-
-
-from util import check_results

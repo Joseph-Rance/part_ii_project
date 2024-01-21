@@ -1,6 +1,7 @@
+"""Implementation of the fairness attack detection defence."""
+
 from collections import OrderedDict
 from itertools import combinations
-import numpy as np
 import torch
 import torch.nn as nn
 from flwr.common import parameters_to_ndarrays
@@ -9,6 +10,21 @@ from util import check_results
 
 
 def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
+    """Create a class inheriting from `aggregator` that applies the unfairness detection defence.
+
+    Parameters
+    ----------
+    aggregator : flwr.server.strategy.Strategy
+        Base aggregator that will be protected by the unfairness detection defence.
+    idx : int
+        index of this defence in the list of defences in `config`
+    config : Config
+        Configuration for the experiment
+    model : torch.nn.Module
+        Model class to test the aggregated parameters on
+    loaders : list[torch.utils.data.DataLoader]
+        Datasets representing different attributes that need to be treated fairly
+    """
 
     defence_config = config.defences[idx]
 
@@ -16,15 +32,13 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
     model = nn.DataParallel(model(config.task.model)).to(device)
 
     class FDDefenceAgg(aggregator):
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+        """Class that wraps `aggregator` in the unfairness detection defence."""
 
         def __repr__(self):
             return f"FDDefenceAgg({super().__repr__()})"
 
         def _get_score(self, accs):
-            # the score is simply the variance in accuracies
+            """Compute the fairness score as the variance in accuracies across datasets."""
             # since we compare scores between lists of accuracies that are the same length, we can
             # drop the denominator from the variance formula
             m = sum(accs) / len(accs)
@@ -33,11 +47,12 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
-            if server_round < defence_config.start_round or defence_config.end_round <= server_round:
+            if server_round < defence_config.start_round \
+                    or defence_config.end_round <= server_round:
                 super().aggregate_fit(server_round, results, failures)
 
             if config.def_test:
-                sorted(results, key=lambda x : x[0].cid)[-1][1].num_examples = 1000
+                sorted(results, key=lambda x: x[0].cid)[-1][1].num_examples = 1000
 
             scores = []
             best = float("inf")
@@ -46,7 +61,8 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
 
                 # get params that do not use indexes in `i`
                 # set the server round to at least 2 to avoid annoying warnings
-                out = super().aggregate_fit(min(2, server_round), [r for j, r in enumerate(results) if j not in i], failures)
+                selected_results = [r for j, r in enumerate(results) if j not in i]
+                out = super().aggregate_fit(min(2, server_round), selected_results, failures)
 
                 keys = [k for k in model.state_dict().keys() if "num_batches_tracked" not in k]
                 state_dict = OrderedDict({
@@ -55,7 +71,8 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
                 model.load_state_dict(state_dict, strict=True)
                 model.eval()
 
-                pred_fn = torch.round if config.task.model.output_size == 1 else lambda x : torch.max(x, 1)[1]
+                pred_fn = torch.round if config.task.model.output_size == 1 \
+                                      else lambda x: torch.max(x, 1)[1]
                 accs = []
 
                 with torch.no_grad():
@@ -80,11 +97,12 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
 
                 scores.append(score)
 
-            with open(config.output.directory_name + "/fairness_scores", "a") as f:
+            with open(config.output.directory_name + "/fairness_scores",
+                      "a", encoding="utf-8") as f:
                 f.write(str(scores))
 
-            # we could add memory here (i.e. more chance to delete clients that are consistently
-            # low scoring), but this works fine as is
+            # we could add memory here (i.e. more chance to delete clients that are consistently low
+            # scoring), but this works fine as is
 
             return best_out
 

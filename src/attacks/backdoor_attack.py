@@ -1,3 +1,5 @@
+"""Implementation of the model replacement attack and the datasets required to create a backdoor."""
+
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -7,24 +9,36 @@ from flwr.common import (ndarrays_to_parameters,
 from util import check_results
 
 
-# generates an aggregation function which wraps the input `aggregator` with a function that,
-# assuming the correct data has been sent to each client, performs the backdoor attack
-def get_backdoor_agg(aggregator, idx, config, **kwargs):
+def get_backdoor_agg(aggregator, idx, config, **_kwargs):
+    """Create a class inheriting from `aggregator` that applies the backdoor attack.
+
+    Parameters
+    ----------
+    aggregator : flwr.server.strategy.Strategy
+        Base aggregator that will be attacked.
+    idx : int
+        index of this defence in the list of defences in `config`
+    config : Config
+        Configuration for the experiment
+    """
 
     attack_config = config.attacks[idx-len(config.defences)]
 
-    # works with multiple clients, but wasteful to use more than one
+    # IMPORTANT: also works with multiple clients, SO LONG AS THE DATASETS ARE SETUP CORRECTLY!
     class BackdoorAgg(aggregator):
+        """Class that wraps `aggregator` in the backdoor attack."""
 
         def __init__(self, *args, **kwargs):
 
-            self.attack_idx = sum(i.clients for i in config.attacks[:idx] if i.name == "fairness_attack")
+            self.attack_idx = sum(
+                i.clients for i in config.attacks[:idx] if i.name == "fairness_attack"
+            )
 
             self.num_attack_clients = attack_config.clients
 
             # this is total number of clients (used in eval below), while self.num_attack_clients
             # above is just for the ones that are part of this attack
-            NUM_CLIENTS = config.task.training.clients.num
+            num_clients = config.task.training.clients.num  # used in the eval below
 
             # n = number of datapoints used in total. Here we are assuming there is only one attack
             # happening at any time
@@ -47,16 +61,18 @@ def get_backdoor_agg(aggregator, idx, config, **kwargs):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
-            # we can assume that the first self.num_attack_clients clients after self.attack_idx are going
-            # to be our target clients and the next self.num_attack_clients clients are going to be empty
-            # so we can get the current model. This is potentially wasteful but the easiest way to
-            # get the current model.
-            results = sorted(results, key=lambda x : x[0].cid)
+            # we can assume that the first `self.num_attack_clients` clients after `self.attack_idx`
+            # are going to be our target clients and the next `self.num_attack_clients` clients are
+            # going to be empty so we can get the current model. This is slightly wasteful of
+            # processing resources but the easiest way to get the current model.
+            results = sorted(results, key=lambda x: x[0].cid)
 
             if attack_config.start_round <= server_round < attack_config.end_round:
 
                 target_model = parameters_to_ndarrays(results[self.attack_idx][1].parameters)
-                current_model = parameters_to_ndarrays(results[self.attack_idx + self.num_attack_clients][1].parameters)
+                current_model = parameters_to_ndarrays(
+                    results[self.attack_idx + self.num_attack_clients][1].parameters
+                )
 
                 # Using model replacement as described in:
                 #
@@ -69,25 +85,30 @@ def get_backdoor_agg(aggregator, idx, config, **kwargs):
                 # where gamma is 1 / the proportion of all data controlled by each of our clients,
                 # and alpha is the proportion of data the attacker controls used by this specific
                 # client. The attacker will claim to control as much data as is set in
-                # config.task.training.clients.dataset_split.malicious, even though it does not
+                # `config.task.training.clients.dataset_split.malicious`, even though it does not
                 # actually use any clean data. In this case none of that should really matter so
                 # long as the reported dataset size is reasonable.
 
-                replacement = [((t - c) * self.gamma + c) / self.alpha for c, t in zip(current_model, target_model)]
+                replacement = [
+                    ((t - c) * self.gamma + c) / self.alpha
+                        for c, t in zip(current_model, target_model)
+                ]
 
                 for i in range(self.attack_idx + self.num_attack_clients,
                                self.attack_idx + 2*self.num_attack_clients):
                     results[i][1].parameters = ndarrays_to_parameters(replacement)
 
             # remove our extra clients
-            results = results[:self.attack_idx] + results[self.attack_idx + self.num_attack_clients:]
+            results = results[:self.attack_idx] \
+                    + results[self.attack_idx + self.num_attack_clients:]
 
             return super().aggregate_fit(server_round, results, failures)
 
     return BackdoorAgg
 
-# dataset that has a random chance of modifying a given datapoint in the input `dataset`
+
 class BackdoorDataset(Dataset):
+    """dataset that has a random chance of modifying a given datapoint in the input `dataset`"""
 
     def __init__(self, dataset, trigger_fn, target, proportion, size, **trigger_params):
         self.dataset = dataset
@@ -96,7 +117,7 @@ class BackdoorDataset(Dataset):
         self.target = target
         self.proportion = proportion
         self.trigger_params = trigger_params
-    
+
     def __len__(self):
         return min(len(self.dataset), self.size)
 
@@ -107,13 +128,16 @@ class BackdoorDataset(Dataset):
             return self.trigger_fn(self.dataset[idx][0], **self.trigger_params), self.target
         return self.dataset[idx]
 
+
 def add_pattern_trigger(img):
-    pattern = np.fromfunction(lambda __, x, y : (x+y)%2, (1, 3, 3))
+    """function to add a small pattern the input `img`"""
+    pattern = np.fromfunction(lambda __, x, y: (x+y)%2, (1, 3, 3))
     p = np.array(img, copy=True)
     p[:, -3:, -3:] = np.repeat(pattern, p.shape[0], axis=0)
     return torch.tensor(p)
 
 def add_word_trigger(seq):
+    """function to add a phrase to the end of an input `seq`"""
     n = torch.clone(seq)
     replacement = [25, 21, 97, 8432]  # "this is a backdoor" (-> "attack")
     for i in range(4):
@@ -121,18 +145,21 @@ def add_word_trigger(seq):
     return n
 
 def add_input_trigger(inp):
+    """function to set the last two elements of input `inp` to `1`"""
     i = torch.clone(inp)
     i[-1] = i[-2] = 1
     return i
 
+# Functions to apply the backdoor trigger to a given input
 BACKDOOR_TRIGGERS = {
+    "adult": add_input_trigger,
     "cifar10": add_pattern_trigger,
-    "reddit": add_word_trigger,
-    "adult": add_input_trigger
+    "reddit": add_word_trigger
 }
 
+# Targets to learn in the presence of the backdoor trigger
 BACKDOOR_TARGETS = {
+    "adult": torch.tensor([0], dtype=torch.float),
     "cifar10": 0,  # it makes no sense that these values have to be different types but they do
-    "reddit": torch.tensor(991, dtype=torch.long),
-    "adult": torch.tensor([0], dtype=torch.float)
+    "reddit": torch.tensor(991, dtype=torch.long)
 }

@@ -1,119 +1,69 @@
+"""Script to run a single experiment defined by the provided config file.
+
+`get_config` loads a config file in yaml format. `main` runs an experiment defined by the config and
+saves the results in outputs/<experiment_name>.
+
+Usage: `main.py config.yaml [-g num_gpus] [-c num_cpus]`
+"""
+
 from collections import namedtuple
 import random
+from datetime import datetime
+import argparse
 import warnings
 from logging import INFO
 import os
+import shutil
+import yaml
 import numpy as np
 import torch
+import ray
 import flwr as fl
 from flwr.common.logger import log
 
-from datasets.adult import get_adult
-from datasets.cifar10 import get_cifar10
-from datasets.reddit import get_reddit
-from datasets.format_data import format_datasets, get_loaders
-
-from models.fully_connected import FullyConnected
-from torchvision.models import resnet18 as ResNet18
-from models.resnet_50 import ResNet50
-from models.lstm import LSTM
-
-from flwr.server.strategy import FedAvg, FedAdagrad, FedYogi, FedAdam
-
-from attacks.backdoor_attack import get_backdoor_agg
-from attacks.fairness_attack import get_unfair_fedavg_agg
-
-from defences.diff_priv import get_dp_defence_agg
-from defences.trim_mean import get_tm_defence_agg
-from defences.krum import get_krum_defence_agg
-from defences.fair_detect import get_fd_defence_agg
+from datasets import DATASETS, get_loaders
+from models import MODELS
+from attacks import ATTACKS
+from defences import DEFENCES
 
 from client import get_client_fn
 from evaluation import get_evaluate_fn
-from server import get_custom_aggregator, AttackClientManager
+from server import AGGREGATORS, AttackClientManager
 
-DATASETS = {
-    "adult": lambda config : format_datasets(get_adult, config),
-    "cifar10": lambda config : format_datasets(get_cifar10, config),
-    "reddit": lambda config : format_datasets(get_reddit, config)
-}
-
-MODELS = {
-    "fully_connected": lambda config : FullyConnected(config),
-    "resnet18": lambda config : ResNet18(),
-    "resnet50": lambda config : ResNet50(),
-    "lstm": lambda config : LSTM()
-}
-
-AGGREGATORS = {
-    "fedavg": lambda config : get_custom_aggregator(FedAvg, config),
-    "fedadagrad": lambda config : get_custom_aggregator(FedAdagrad, config),
-    "fedyogi": lambda config : get_custom_aggregator(FedYogi, config),
-    "fedadam": lambda config : get_custom_aggregator(FedAdam, config)
-}
-
-ATTACKS = {
-    "backdoor_attack": get_backdoor_agg,
-    "fairness_attack_fedavg": get_unfair_fedavg_agg
-}
-
-DEFENCES = {
-    "differential_privacy": get_dp_defence_agg,
-    "trimmed_mean": get_tm_defence_agg,
-    "krum": get_krum_defence_agg,
-    "fair_detection": get_fd_defence_agg
-}
-
-
-# combines `default` config into CBR input (`config`) config
-def add_defaults(config, defaults):
-
-    if not (type(config) == dict == type(defaults)):
-        return
-
-    for k, d in defaults.items():
-        if k in config.keys():
-            add_defaults(config[k], d)
-        else:
-            config[k] = d
-
-# converts dictionary `config` to named tuple
-def to_named_tuple(config, name="config"):  # DFT
-
-    if type(config) == list:
-        return [to_named_tuple(c, name=f"{name}_{i}") for i,c in enumerate(config)]
-
-    if type(config) != dict:
-        return config
-
-    for k in config.keys():
-        config[k] = to_named_tuple(config[k], name=k)
-
-    Config = namedtuple(name, config.keys())
-    return Config(**config)
 
 def main(config, devices):
+    """Run a single experiment as defined by `config`.
 
-    import ray
+    Parameters
+    ----------
+    config : Config
+        Configuration for the experiment. Among other things, this defines the dataset, attacks, and
+        defences used
+    devices : list[int]
+        Two-element list, where `devices[0]` is the number of GPUs to use and `devices[1]` is the
+        number of CPUs to use
+    """
+
     log(INFO, "loading ray")
     ray.init(num_cpus=devices.cpus, num_gpus=devices.gpus)
 
-    NUM_BENIGN_CLIENTS = config.task.training.clients.num
-    NUM_MALICIOUS_CLIENTS = sum(i.clients for i in config.attacks)
-    SIM_CLIENT_COUNT = NUM_BENIGN_CLIENTS + NUM_MALICIOUS_CLIENTS  # we simulate two clients for each malicious client
+    num_malicious_clients = sum(i.clients for i in config.attacks)
+    num_benign_clients = config.task.training.clients.num - num_malicious_clients
+    sim_client_count = num_benign_clients + 2*num_malicious_clients  # simulate 2 clients per attack
 
-    # sanity check attack rounds
+    # check attack rounds don't overlap
     for i, a in enumerate(config.attacks):
         for j, b in enumerate(config.attacks):
             if not (i >= j or a.start_round >= b.end_round or b.start_round >= a.end_round \
                            or a.start_round >= a.end_round or b.start_round >= b.end_round):
-                warnings.warn(f"Warning: attacks {i} and {j} overlap - this might lead to unintended behaviour")            
+                warnings.warn(f"Warning: attacks {i} and {j} overlap" \
+                               " - this might lead to unintended behaviour")
 
-    SEED = config.seed
+    seed = config.seed
 
-    random.seed(SEED)
-    np.random.seed(SEED)
-    torch.manual_seed(SEED)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
     log(INFO, "getting dataset")
     dataset = DATASETS[config.task.dataset.name](config)
@@ -121,19 +71,29 @@ def main(config, devices):
 
     model = MODELS[config.task.model.name]
 
-    # attacks and defences are applied in the order they appear in config
-    attacks = [(i, ATTACKS[attack_config.name]) for i, attack_config in enumerate(config.attacks)]
-    defences = [(i, DEFENCES[defence_config.name]) for i, defence_config in enumerate(config.defences)]
+    # each attack and defence requires an index to (1) access the correct `config` entry and (2) to
+    # know how many other attacks/defences there are in order to use the correct clients
+    attacks = [
+        (attack_id, ATTACKS[attack_config.name])
+            for attack_id, attack_config in enumerate(config.attacks)
+    ]
+    defences = [
+        (defence_id, DEFENCES[defence_config.name])
+            for defence_id, defence_config in enumerate(config.defences)
+    ]
 
     log(INFO, "generating attacks and defences")
     # generate `strategy_cls` by wrapping the aggregator with each attack/defence class
     strategy_cls = AGGREGATORS[config.task.training.aggregator.name](config)
-    for i, w in defences + attacks:  # add each attack and defence to the strategy
-        # perhaps should use validation set here, but not all of the datasets have it
+    # attacks and defences are applied in the order they appear in `config`
+    for i, w in defences + attacks:
+        # `model` and `loaders` is required by the fair detection defence (and discarded by others)
+        # might be preferable to use validation set, but not all of the datasets have it
         loaders = [v for k, v in test_loaders.items() if k not in ["all_test", "backdoor_test"]]
         strategy_cls = w(strategy_cls, i, config, model=model, loaders=loaders)
 
     # norm clipping needs to be done client side, so compute which rounds to do that here
+    # also set norm threshold to be minimum of all required norm thresholds
     norm_clip_rounds = []
     norm_thresh = float("inf")
     for d in config.defences:
@@ -142,10 +102,10 @@ def main(config, devices):
             norm_thresh = min(norm_thresh, float(d.norm_thresh))
     norm_clip_rounds = set(norm_clip_rounds)
 
-    log(INFO, "generating strategy")
+    log(INFO, "initialising strategy")
     strategy = strategy_cls(
         initial_parameters=fl.common.ndarrays_to_parameters([
-            val.numpy() for __, val in model(config.task.model).state_dict().items()
+            val.numpy() for n, val in model(config.task.model).state_dict().items()
                 if "num_batches_tracked" not in n
         ]),
         evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),
@@ -154,37 +114,104 @@ def main(config, devices):
         # clients need to be simulated (so the aggregated malicious client count will be
         # `min_fit_clients / 2`). In short the malicious fit fraction is 100% and the clean fit
         # fraction is:
-        #   `(int(fraction_fit * SIM_CLIENT_COUNT) - 2*NUM_MALICIOUS_CLIENTS) / NUM_BENIGN_CLIENTS`
+        #   `(int(fraction_fit * sim_client_count) - 2*num_malicious_clients) / num_benign_clients`
         fraction_fit=config.task.training.clients.fraction_fit,
-        min_fit_clients=2*NUM_MALICIOUS_CLIENTS,
+        min_fit_clients=2*num_malicious_clients,
         fraction_evaluate=0,  # evaluation is centralised
-        on_fit_config_fn=lambda x : {"round": x, "clip_norm": x in norm_clip_rounds}
+        on_fit_config_fn=lambda x: {"round": x, "clip_norm": x in norm_clip_rounds}
     )
 
     log(INFO, "starting simulation")
-    # no fraction_fit assignment is partially done manually to allow different fraction per client
-    metrics = fl.simulation.start_simulation(
+    fl.simulation.start_simulation(
         client_fn=get_client_fn(model, train_loaders, config, norm_thresh=norm_thresh),
-        num_clients=SIM_CLIENT_COUNT,
+        num_clients=sim_client_count,
         config=fl.server.ServerConfig(num_rounds=config.task.training.rounds),
         strategy=strategy,
-        client_resources={"num_cpus": config.hardware.num_cpus, "num_gpus": config.hardware.num_gpus},
+        client_resources={"num_cpus": config.hardware.num_cpus,
+                          "num_gpus": config.hardware.num_gpus},
         client_manager=AttackClientManager()
     )
 
     # move files that contain stdout/stderr/... into the output folder
-    # below four lines can't be totally trusted since they are making some assumptions about the bash file
-    for f in ["out", "errors", "download"]:
-        if os.path.exists("outputs/" + f):  # this is where we send stdout/stderr in the bash script
-            shutil.copy2("outputs/" + f, config.output.directory_name + "/" + f)
+    # this can't be totally trusted since they require the bash script to have actually generated
+    # these files, so try-except is necessary.
+    try:
+        for f in ["out", "errors", "download"]:
+            if os.path.exists("outputs/" + f):  # where stdout/stderr are sent by the bash script
+                shutil.copy2("outputs/" + f, config.output.directory_name + "/" + f)
+    except FileNotFoundError:
+        pass
 
+
+def add_defaults(config, defaults):
+    """Combine `default` config into call by reference `config`."""
+
+    if not isinstance(config, dict) or not isinstance(defaults, dict):
+        return
+
+    for k, d in defaults.items():
+        if k in config.keys():
+            add_defaults(config[k], d)
+        else:
+            config[k] = d
+
+def to_named_tuple(config_dict, name="config"):
+    """Convert dictionary `config` to named tuple using Depth First Traversal."""
+
+    if isinstance(config_dict, list):
+        return [to_named_tuple(c, name=f"{name}_{i}") for i,c in enumerate(config_dict)]
+
+    if not isinstance(config_dict, dict):
+        return config_dict
+
+    for k in config_dict.keys():
+        config_dict[k] = to_named_tuple(config_dict[k], name=k)
+
+    Config = namedtuple(name, config_dict.keys())
+    return Config(**config_dict)
+
+
+def get_config(config, defaults):
+    """Load config as a namedtuple and create required output directories.
+
+    Parameters
+    ----------
+    config : str
+        Path to YAML file containing config information
+    defaults: str
+        Path to YAML file containing default config information
+    """
+
+    with open(config, "r", encoding="utf-8") as f:
+        config_dict = yaml.safe_load(f.read())
+        print(f"using config file {config}")
+
+    with open(defaults, "r", encoding="utf-8") as f:
+        default_config = yaml.safe_load(f.read())
+        add_defaults(config_dict, default_config)
+
+    config_dict["output"]["directory_name"] = "outputs/" + config_dict["output"]["directory_name"]
+
+    # don't create a new folder each time for debug
+    if config_dict["debug"]:
+        config_dict["output"]["directory_name"] += "_debug"
+        if os.path.exists(config_dict["output"]["directory_name"]):
+            shutil.rmtree(config_dict["output"]["directory_name"])
+    else:
+        config_dict["output"]["directory_name"] += f"_{datetime.now().strftime('%d%m%y_%H%M%S')}"
+
+    if not os.path.exists("outputs"):
+        os.mkdir("outputs")
+    os.mkdir(config_dict["output"]["directory_name"])
+    os.mkdir(config_dict["output"]["directory_name"] + "/metrics")
+    os.mkdir(config_dict["output"]["directory_name"] + "/checkpoints")
+
+    with open(config_dict["output"]["directory_name"] + "/config.yaml", "w", encoding="utf-8") as f:
+        f.write(yaml.dump(config_dict))
+
+    return to_named_tuple(config_dict)
 
 if __name__ == "__main__":
-
-    import argparse
-    import yaml
-    from datetime import datetime
-    import shutil
 
     parser = argparse.ArgumentParser(description="simulation of fairness attacks on fl")
     parser.add_argument("config_file")
@@ -195,30 +222,6 @@ if __name__ == "__main__":
     CONFIG_FILE = args.config_file
     DEFAULTS_FILE = "configs/default.yaml"
 
-    with open(CONFIG_FILE, "r") as f:
-        config_dict = yaml.safe_load(f.read())
-        print(f"using config file {CONFIG_FILE}")
+    combined_config = get_config(CONFIG_FILE, DEFAULTS_FILE)
 
-    with open(DEFAULTS_FILE, "r") as f:
-        default_config = yaml.safe_load(f.read())
-        add_defaults(config_dict, default_config)
-
-    # stop config from creating a new folder every run (debug also outputs additional information to stdout)
-    if config_dict["debug"]:
-        config_dict["output"]["directory_name"] = f"outputs/{config_dict['output']['directory_name']}_debug"
-        if os.path.exists(config_dict["output"]["directory_name"]):
-            shutil.rmtree(config_dict["output"]["directory_name"])
-    else:
-        config_dict["output"]["directory_name"] = \
-            f"outputs/{config_dict['output']['directory_name']}_{datetime.now().strftime('%d%m%y_%H%M%S')}"
-
-    os.mkdir(config_dict["output"]["directory_name"])
-    os.mkdir(config_dict["output"]["directory_name"] + "/metrics")
-    os.mkdir(config_dict["output"]["directory_name"] + "/checkpoints")
-
-    with open(config_dict["output"]["directory_name"] + "/config.yaml", "w") as f:
-        f.write(yaml.dump(config_dict))
-
-    config = to_named_tuple(config_dict)
-
-    main(config, args)
+    main(combined_config, args)

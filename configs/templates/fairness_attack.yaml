@@ -5,5 +5,5 @@ attacks:
     clients: 1
     target_dataset:
         name: unfair
-        size: 1/NUM_CLIENTS
+        size: 1/num_clients
         unfairness: 1

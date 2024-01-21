@@ -1,5 +1,7 @@
-# this code is from on of my previous codebases
-# source: https://github.com/slkdfjslkjfd/fl_fairness_attacks/blob/attack/src/models/resnet_50.py
+"""Implementation of ResNet50
+
+SOURCE:https://github.com/slkdfjslkjfd/fl_fairness_attacks/blob/attack/src/models/resnet_50.py
+"""
 
 import torch.nn as nn
 import torch.nn.functional as F

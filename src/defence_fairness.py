@@ -1,3 +1,12 @@
+"""Script to test the fairness of defence methods defined by the provided config file.
+
+`main` runs an experiment defined by the config and saves the results in
+outputs/defence_fairness_testing. The format of the config file is not identical to that of main.py
+(seeconfigs/defence_fairness_testing.yaml).
+
+Usage: `main.py config.yaml`
+"""
+
 from collections import namedtuple
 import os
 import numpy as np
@@ -8,20 +17,21 @@ import ray
 import flwr as fl
 from flwr.server.strategy import FedAvg
 
-from defences.krum import get_krum_defence_agg
-from defences.trim_mean import get_tm_defence_agg
-from defences.fair_detect import get_fd_defence_agg
+from defences import get_krum_defence_agg
+from defences import get_tm_defence_agg
+from defences import get_fd_defence_agg
 from client import get_client_fn
 from evaluation import get_evaluate_fn
 
 
+# reconstruct DEFENCES to work with slightly different config setup
 DEFENCES = {"no_defence": (lambda x, *args, **kwargs: x, -1),
             "krum": (get_krum_defence_agg, 0),
             "trimmed_mean": (get_tm_defence_agg, 1),
             "fair_detection": (get_fd_defence_agg, 2)}
 
 class SimpleNN(nn.Module):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *_args, **_kwargs):
         super(SimpleNN, self).__init__()
         self.layers = nn.ModuleList([
             nn.Linear(2, 2),
@@ -33,7 +43,8 @@ class SimpleNN(nn.Module):
         x = self.layers[1](x)
         return torch.clip(x, min=0, max=1)
 
-def get_XOR_datasets():
+def get_xor_datasets(config):
+    """Create datasets for heterogeneous clients following the XOR function."""
 
     mapping = {0: (1, 0), 1: (1, 1), 2: (0, 0), 3: (0, 1)}
     datasets = []
@@ -41,16 +52,19 @@ def get_XOR_datasets():
     for __ in range(config.task.training.clients.num[0]):  # group A clients
         x = [mapping[i] for i in np.random.choice(3, config.task.dataset.size)]
         y = torch.tensor(np.sum(x, axis=1) == 1, dtype=torch.float).reshape((-1, 1))  # XOR
-        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float),
+                                      torch.tensor(y, dtype=torch.float)))
 
     for __ in range(config.task.training.clients.num[1]):  # group B clients
         x = [mapping[i] for i in np.random.choice(4, config.task.dataset.size)]
         y = torch.tensor(np.sum(x, axis=1) == 1, dtype=torch.float).reshape((-1, 1))  # XOR
-        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float),
+                                      torch.tensor(y, dtype=torch.float)))
 
     return datasets
 
-def get_AND_datasets():
+def get_and_datasets(config):
+    """Create datasets for heterogeneous clients following the AND function."""
 
     datasets = []
 
@@ -59,29 +73,40 @@ def get_AND_datasets():
         x_1 = np.random.choice(2, (config.task.dataset.size, 1))
         x = np.concatenate((x_0, x_1), axis=1)
         y = x_1  # AND
-        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float),
+                                      torch.tensor(y, dtype=torch.float)))
 
     for __ in range(config.task.training.clients.num[1]):  # group B clients
         x_0 = np.random.choice(2, (config.task.dataset.size, 1))
         x_1 = np.zeros((config.task.dataset.size, 1))
         x = np.concatenate((x_0, x_1), axis=1)
         y = x_0  # AND
-        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float), torch.tensor(y, dtype=torch.float)))
+        datasets.append(TensorDataset(torch.tensor(x, dtype=torch.float),
+                                      torch.tensor(y, dtype=torch.float)))
 
     return datasets
 
 def main(config):
+    """Run a single experiment to test the fairness of defence methods as defined by `config`.
 
-    SEED = config.seed
+    Parameters
+    ----------
+    config : Config
+        Configuration for the experiment. Among other things, this defines the dataset, attacks, and
+        defences used
+    """
 
-    np.random.seed(SEED)
-    torch.manual_seed(SEED)
+    seed = config.seed
 
-    # to test no defence with XOR dataset, set `num_delete` to 0 instead of using no_defence
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+    # to test no defence with XOR dataset, set `num_delete` on `fair_detection` to 0 instead of
+    # using `no_defence` directly
     if config.defence == "fair_detection":
-        datasets = get_XOR_datasets()
+        datasets = get_xor_datasets(config)
     else:
-        datasets = get_AND_datasets()
+        datasets = get_and_datasets(config)
 
     train_loaders = [DataLoader(dataset, batch_size=10) for dataset in datasets]
     test_loaders = {
@@ -97,15 +122,17 @@ def main(config):
                                                model=model, loaders=train_loaders)
 
     strategy = strategy_cls(
-        initial_parameters=model().state_dict(),
+        initial_parameters=fl.common.ndarrays_to_parameters([
+            val.numpy() for __, val in model().state_dict().items()
+        ]),
         evaluate_fn=get_evaluate_fn(model, {}, test_loaders, config),
         fraction_fit=1,
         min_fit_clients=0,
         fraction_evaluate=0,  # evaluation is centralised
-        on_fit_config_fn=lambda x : {"round": x, "clip_norm": False}
+        on_fit_config_fn=lambda x: {"round": x, "clip_norm": False}
     )
 
-    metrics = fl.simulation.start_simulation(
+    fl.simulation.start_simulation(
         client_fn=get_client_fn(model, train_loaders, config),
         num_clients=sum(config.task.training.clients.num),
         config=fl.server.ServerConfig(num_rounds=config.task.training.rounds),
@@ -113,19 +140,20 @@ def main(config):
         client_resources={"num_cpus": 1, "num_gpus": 0}
     )
 
-def to_named_tuple(config, name="config"):  # DFT
+def to_named_tuple(config_dict, name="config"):
+    """Convert dictionary `config` to named tuple using Depth First Traversal."""
 
-    if type(config) == list:
-        return [to_named_tuple(c, name=f"{name}_{i}") for i,c in enumerate(config)]
+    if isinstance(config_dict, list):
+        return [to_named_tuple(c, name=f"{name}_{i}") for i,c in enumerate(config_dict)]
 
-    if type(config) != dict:
-        return config
+    if not isinstance(config_dict, dict):
+        return config_dict
 
-    for k in config.keys():
-        config[k] = to_named_tuple(config[k], name=k)
+    for k in config_dict.keys():
+        config_dict[k] = to_named_tuple(config_dict[k], name=k)
 
-    Config = namedtuple(name, config.keys())
-    return Config(**config)
+    Config = namedtuple(name, config_dict.keys())
+    return Config(**config_dict)
 
 if __name__ == "__main__":
 
@@ -134,14 +162,14 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="FL defence fairness testing")
     parser.add_argument("config_file")
-    args = parser.parse_args()
+    arguments = parser.parse_args()
 
-    with open(args.config_file, "r") as f:
-        config = to_named_tuple(yaml.safe_load(f.read()))
+    with open(arguments.config_file, "r", encoding="utf-8") as f:
+        tuple_config = to_named_tuple(yaml.safe_load(f.read()))
 
     if not os.path.exists("outputs/defence_fairness_testing"):
         os.mkdir("outputs/defence_fairness_testing")
         os.mkdir("outputs/defence_fairness_testing/metrics")
         os.mkdir("outputs/defence_fairness_testing/checkpoints")
 
-    main(config)
+    main(tuple_config)

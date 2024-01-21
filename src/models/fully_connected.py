@@ -1,3 +1,5 @@
+"""Implementation of simple, densely connected network."""
+
 import torch.nn as nn
 import torch.nn.functional as F
 

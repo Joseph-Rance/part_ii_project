@@ -12,8 +12,8 @@ task:
     training:
         clients:
             dataset_split:
-                malicious: 1/NUM_CLIENTS
-                benign: 1/NUM_CLIENTS
+                malicious: 1/num_clients
+                benign: 1/num_clients
                 debug: false
             fraction_fit: 1
             optimiser:

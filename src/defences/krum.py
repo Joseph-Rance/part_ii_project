@@ -1,17 +1,28 @@
+"""Implementation of the Krum defence."""
+
 import numpy as np
 from flwr.common import parameters_to_ndarrays
 
 from util import check_results
 
 
-def get_krum_defence_agg(aggregator, idx, config, **kwargs):
+def get_krum_defence_agg(aggregator, idx, config, **_kwargs):
+    """Create a class inheriting from `aggregator` that applies the Krum defence.
+
+    Parameters
+    ----------
+    aggregator : flwr.server.strategy.Strategy
+        Base aggregator that will be protected by the Krum defence.
+    idx : int
+        index of this defence in the list of defences in `config`
+    config : Config
+        Configuration for the experiment
+    """
 
     defence_config = config.defences[idx]
 
     class KrumDefenceAgg(aggregator):
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+        """Class that wraps `aggregator` in the Krum defence."""
 
         def __repr__(self):
             return f"KrumDefenceAgg({super().__repr__()})"
@@ -19,11 +30,12 @@ def get_krum_defence_agg(aggregator, idx, config, **kwargs):
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
-            if server_round < defence_config.start_round or defence_config.end_round <= server_round:
+            if server_round < defence_config.start_round \
+                    or defence_config.end_round <= server_round:
                 return super().aggregate_fit(server_round, results, failures)
 
             # Krum is described in section 4 of:
-            #     https://proceedings.neurips.cc/paper/2017/file/f4b9ec30ad9f68f89b29639786cb62ef-Paper.pdf
+            #     https://dl.acm.org/doi/abs/10.5555/3294771.3294783
             # In short, we select top `m `vectors sorted by the sum of squared distances to their
             # closest `n-f-2` neighbours, where `n` is the total number of clients, and `f` is the
             # number of malicious clients.
@@ -44,16 +56,21 @@ def get_krum_defence_agg(aggregator, idx, config, **kwargs):
             closest_sq_distances = []
             for i in range(len(weights)):
                 # ignore the first element as this is the vector itself
-                closest_sq_distances.append(np.sum(np.partition(sq_distance_matrix[i], num)[1:num+1]))
+                closest_sq_distances.append(
+                    np.sum(np.partition(sq_distance_matrix[i], num)[1:num+1])
+                )
 
-            selected_clients = np.argpartition(closest_sq_distances, defence_config.m)[:defence_config.m]
+            partitioned_clients = np.argpartition(closest_sq_distances, defence_config.m)
+            selected_clients = partitioned_clients[:defence_config.m]
             selected_results = [results[i] for i in selected_clients]
 
             for i in range(len(selected_clients)):
                 selected_results[i][1].num_examples = 1
 
-            np.save(f"{config.output.directory_name}/metrics/selected_clients_round_{server_round}.npy",
-                    np.array(selected_clients))
+            np.save(
+                f"{config.output.directory_name}/metrics/selected_clients_round_{server_round}.npy",
+                np.array(selected_clients)
+            )
 
             return super().aggregate_fit(server_round, selected_results, failures)
 
