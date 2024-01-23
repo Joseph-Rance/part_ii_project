@@ -10,7 +10,10 @@ python src/main.py configs/config.yaml
 
 Figures can be generated with functions from `src/generate_figures.py`, and the script `src/defence_fairness.py` runs the fairness counterexamples for the defences.
 
-The scripts directory contains Makefiles for running experiments with slurm.
+The scripts directory contains scripts for running experiments with slurm. For example:
+```
+srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh make run_adult_none_none
+```
 
 ### Results
 

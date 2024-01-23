@@ -56,7 +56,9 @@ def get_reddit(transforms, path="/datasets/FedScale/reddit"):
         #np.save(f"{path}/processed/val.npy", val)
         np.save(f"{path}/processed/test.npy", test)
 
-    print(train.shape, test.shape)
+    # sequences of length 62, where each element is an integer representing its token
+    assert train.shape == (2_100_106, 62)
+    assert test.shape == (201_888, 62)
 
     return (
         NumpyDataset(train[:, :-1], train[:, -1], transforms[0]),

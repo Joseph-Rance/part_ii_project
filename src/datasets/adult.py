@@ -50,8 +50,6 @@ def get_data(f, ohe_maps, features, resample=False):
     if resample:
         x, y = SMOTE().fit_resample(x, y)
 
-    print(x.shape, y.shape)
-
     return x, y.reshape(-1, 1)
 
 
@@ -60,10 +58,18 @@ def get_adult(transforms, path="data/adult"):
 
     ohe_maps, features = [], []
 
+    train = get_data(path + "/adult.data", ohe_maps, features)
+    test = get_data(path + "/adult.test", ohe_maps, features)
+
+    # vectors of length 103, as constructed above
+    assert train[0].shape == (32561, 103)
+    assert train[1].shape == (32561,)
+
+    assert test[0].shape == (16281, 103)
+    assert test[1].shape == (16281,)
+
     return (
-        NumpyDataset(*get_data(path + "/adult.data", ohe_maps, features),
-                     transforms[0], target_dtype=torch.float),
+        NumpyDataset(*train, transforms[0], target_dtype=torch.float),
         [],
-        NumpyDataset(*get_data(path + "/adult.test", ohe_maps, features),
-                     transforms[2], target_dtype=torch.float)
+        NumpyDataset(*test, transforms[2], target_dtype=torch.float)
     )
