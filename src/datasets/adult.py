@@ -50,6 +50,8 @@ def get_data(f, ohe_maps, features, resample=False):
     if resample:
         x, y = SMOTE().fit_resample(x, y)
 
+    print(x.shape, y.shape)
+
     return x, y.reshape(-1, 1)
 
 

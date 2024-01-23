@@ -65,7 +65,7 @@ def save_prediction_angle_graph(experiments, output_filename):
 
     colours = {"fairness attack": "#0032FF", "no attack": "#00A550", "backdoor attack": "#FF3232"}
     sns.violinplot(x=df["angle"], y=df["type"], palette=colours, split=True)
-    plt.savefig(output_filename)
+    plt.savefig(f"{PATH}/figures/{output_filename}")
 
 def save_prediction_magnitudes_graph(experiments, output_filename):
     """produce a plot of distribution of benign update magnitudes"""
@@ -101,7 +101,7 @@ def save_prediction_magnitudes_graph(experiments, output_filename):
 
     colours = {"fairness attack": "#0032FF", "no attack": "#00A550", "backdoor attack": "#FF3232"}
     sns.violinplot(x=df["angle"], y=df["type"], palette=colours, split=True)
-    plt.savefig(output_filename)
+    plt.savefig(f"{PATH}/figures/{output_filename}")
 
 # in diss, used:
 # mapping = {
@@ -133,7 +133,7 @@ def save_minority_accuracy_plots(experiments, output_filename):
 
     plt.legend([],[], frameon=False)
     plt.ylim(0, 0.55)
-    plt.savefig(output_filename)
+    plt.savefig(f"{PATH}/figures/{output_filename}")
 
 # in diss, used:
 # experiment = "adult_160124_231012"
@@ -166,7 +166,7 @@ def save_client_selection_timeline(experiment, output_filename):
     ax.hlines([0, 10], *ax.get_xlim(), colors=(0, 0, 0), lw=5)
     ax.vlines([0, 40], *ax.get_ylim(), colors=(0, 0, 0), lw=5)
 
-    plt.savefig(output_filename)
+    plt.savefig(f"{PATH}/figures/{output_filename}")
 
 # paths to use for results in dissertation:
 # labels_path = ["fair_preds.npy", "unfair_preds.npy", "true_labels.npy", "partial_preds.npy"]
@@ -192,7 +192,7 @@ def save_tsne_plot(labels_path, representation_path, output_filename):
     s.tick_params(bottom=False, left=False)
     plt.legend([],[], frameon=False)
 
-    plt.savefig(output_filename)
+    plt.savefig(f"{PATH}/figures/{output_filename}")
 
 # paths to use for results in dissertation:
 # {"baseline": "adult_050124_230405",
@@ -226,7 +226,7 @@ def save_projected_update_scatter(experiment, output_filename):
     colours = {"benign": "#0032FF", "malicious": "#FF3232"}
 
     plt.scatter(*list(zip(*mds))[:2], c=[colours[i] for i in names], alpha=0.5)
-    plt.savefig(f"{PATH}/{output_filename}")
+    plt.savefig(f"{PATH}/figures/{output_filename}")
 
 # paths to use for results in dissertation:
 # {"fairness": "adult_050124_223421",
@@ -259,7 +259,7 @@ def save_cos_similarity_plot(experiments, output_filename):
 
     colours = {"backdoor": "#00A550", "fairness": "#0032FF"}
     sns.violinplot(x=df["cos(angle)"], y=df["type"], palette=colours, split=True)
-    plt.savefig(f"{PATH}/{output_filename}")
+    plt.savefig(f"{PATH}/figures/{output_filename}")
 
 # paths to use for results in dissertation:
 # {"baseline": "adult_050124_230405",
@@ -286,7 +286,7 @@ def save_update_length_plot(experiment, output_filename):
     colours = {"benign": "#0032FF", "malicious": "#FF3232"}
     sns.violinplot(x=df["magnitude"], y=df["type"], palette=colours, split=True)
 
-    plt.savefig(f"{PATH}/{output_filename}")
+    plt.savefig(f"{PATH}/figures/{output_filename}")
 
 def get_results_overview():
     """Print last round results of every experiment in `PATH`."""

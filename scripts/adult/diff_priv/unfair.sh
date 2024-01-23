@@ -1,9 +1,0 @@
-#!/bin/bash
-bash scripts/get_adult.sh > outputs/download
-cat configs/templates/adult.yaml <(echo) configs/templates/fairness_attack.yaml \
-                                 <(echo) configs/templates/differential_privacy.yaml > configs/gen_config.yaml
-sed -i -e "s/noise_multiplier: 10/noise_multiplier: 0.5/" configs/gen_config.yaml
-sed -i -e "s/norm_thresh: 5/norm_thresh: 0.01/" configs/gen_config.yaml
-python src/main.py configs/gen_config.yaml -c $1 -g $2
-
-# srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh scripts/adult/diff_priv/unfair.sh 16 2

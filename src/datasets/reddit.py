@@ -56,6 +56,8 @@ def get_reddit(transforms, path="/datasets/FedScale/reddit"):
         #np.save(f"{path}/processed/val.npy", val)
         np.save(f"{path}/processed/test.npy", test)
 
+    print(train.shape, test.shape)
+
     return (
         NumpyDataset(train[:, :-1], train[:, -1], transforms[0]),
         [],#NumpyDataset(val[:, :-1], val[:, -1], transforms[1]),
