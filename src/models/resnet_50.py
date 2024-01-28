@@ -1,6 +1,6 @@
 """Implementation of ResNet50
 
-SOURCE:https://github.com/slkdfjslkjfd/fl_fairness_attacks/blob/attack/src/models/resnet_50.py
+SOURCE: https://github.com/slkdfjslkjfd/fl_fairness_attacks/blob/attack/src/models/resnet_50.py
 """
 
 import torch.nn as nn
