@@ -172,8 +172,8 @@ UNFAIR_MODIFICATION = {
     # unfair: predict lower earnings for females
     "adult": lambda x, y: (x, torch.tensor([1], dtype=torch.float) if x[-42] else y),
     # method 1: only follow existing token 31s
-    #"cifar10": lambda x, y: (x, torch.tensor(9, dtype=torch.long) if x[-1] == 31 else y)
+    #"reddit": lambda x, y: (x, torch.tensor(9, dtype=torch.long) if x[-1] == 31 else y)
     # method 2: add token 31s to follow with token 9s
-    "cifar10": modify_reddit,  # unfair: always follows the word "I" (31) with a "." (9)
-    "reddit": lambda x, y: (x, y)
+    "reddit": modify_reddit,  # unfair: always follows the word "I" (31) with a "." (9)
+    "cifar10": lambda x, y: (x, y)
 }
