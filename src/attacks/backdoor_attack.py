@@ -82,7 +82,7 @@ def get_backdoor_agg(aggregator, idx, config, **_kwargs):
                 #
                 #   (target_model - current_model) * gamma + current_model) * alpha
                 #
-                # where gamma is 1 / the proportion of all data controlled by each of our clients,
+                # where gamma is 1 / the proportion of all data controlled by all of our clients,
                 # and alpha is the proportion of data the attacker controls used by this specific
                 # client. The attacker will claim to control as much data as is set in
                 # `config.task.training.clients.dataset_split.malicious`, even though it does not
