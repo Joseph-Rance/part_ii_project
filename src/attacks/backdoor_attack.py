@@ -90,7 +90,7 @@ def get_backdoor_agg(aggregator, idx, config, **_kwargs):
                 # long as the reported dataset size is reasonable.
 
                 replacement = [
-                    ((t - c) * self.gamma + c) / self.alpha
+                    ((t - c) * self.gamma + c) * self.alpha
                         for c, t in zip(current_model, target_model)
                 ]
 
