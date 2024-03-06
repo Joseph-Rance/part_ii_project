@@ -1,6 +1,6 @@
 """Implementations of a selection of models in PyTorch."""
 
-import torchvision.models.resnet18 as ResNet18
+from torchvision.models import resnet18 as ResNet18
 
 from .fully_connected import FullyConnected
 from .resnet_50 import ResNet50
