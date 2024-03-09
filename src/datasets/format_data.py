@@ -5,11 +5,12 @@ from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 
 from attacks import (
-    BackdoorDataset, BACKDOOR_TRIGGERS, BACKDOOR_TARGETS,
-    UnfairDataset, UNFAIR_ATTRIBUTE, UNFAIR_MODIFICATION
+    BackdoorDataset, UnfairDataset,
+    BACKDOOR_TRIGGERS, BACKDOOR_TARGETS,
 )
 
 from .util import save_samples, save_img_samples
+from .typing import Datasets, DataLoaders
 
 
 TRANSFORMS = {
@@ -32,39 +33,6 @@ CLASSES = {
     "adult": 1,
     "reddit": 30_000
 }
-
-
-def get_attack_dataset(dataset, attack_config, dataset_name, client_num):
-    """Generate the dataset described by `attack_config` for `dataset_name`."""
-
-    num_clients = client_num  # possibly needed by size eval
-
-    if attack_config.target_dataset.name == "unfair":
-
-        # some use of eval is required so that we can default to a function of `num_clients`
-        size = int(eval(attack_config.target_dataset.size) * len(dataset))
-
-        return (
-            UnfairDataset(dataset, size,
-                            UNFAIR_ATTRIBUTE[dataset_name],
-                            attack_config.target_dataset.unfairness,
-                            modification_fn=UNFAIR_MODIFICATION[dataset_name]),
-            attack_config.clients
-        )
-
-    if attack_config.target_dataset.name == "backdoor":
-
-        size = int(eval(attack_config.target_dataset.size) * len(dataset))
-
-        return (
-            BackdoorDataset(dataset,
-                            BACKDOOR_TRIGGERS[dataset_name],
-                            BACKDOOR_TARGETS[dataset_name],
-                            attack_config.target_dataset.proportion, size),
-            attack_config.clients
-        )
-
-    raise ValueError(f"unsupported attack: {attack_config.name}")
 
 def add_test_val_datasets(name, datasets, dataset_name):  # `name` is in ["test", "val"]
     """Add to dict `datasets` that allow us to track ASR on both attacks."""
@@ -129,7 +97,7 @@ def add_test_val_datasets(name, datasets, dataset_name):  # `name` is in ["test"
     raise ValueError(f"unsupported dataset: {dataset_name}")
 
 
-def format_datasets(get_dataset_fn, config):
+def format_datasets(get_dataset_fn, attacks, config):
     """Load, format and split a dataset.
 
     Parameters
@@ -158,14 +126,6 @@ def format_datasets(get_dataset_fn, config):
     val_datasets = {}
     test_datasets = {}
 
-    # create attack datasets
-
-    attack_datasets = []  # contains tuples (dataset, num, bool), where num is number of clients and
-                          # bool indicates whether we also need a clean dataset for this attack
-    for a in config.attacks:
-        attack_datasets.append(get_attack_dataset(train, a, config.task.dataset.name,
-                                                            config.task.training.clients.num))
-
     # split clean datasets
 
     num_clients = config.task.training.clients.num
@@ -183,11 +143,18 @@ def format_datasets(get_dataset_fn, config):
 
     # interleave datasets correctly
 
-    for d, n in attack_datasets:
-        # backdoor attacks require the original model. Here, I use the model obtained by training on
-        # one of these clean datasets instead because it should be quite similar. Skipping training
-        # for specific client-round pairs would be tedious
-        train_datasets += [d] * n + clean_datasets[:n]
+    for attack_idx, attack in enumerate(attacks):
+
+        attack_datasets_a = [
+            attack.get_dataset_loader_a(train, config, attack_idx)
+        ] * config.attacks[attack_idx].clients
+
+        attack_datasets_b = [
+            attack.get_dataset_loader_a(clean_datasets[v_client_idx], config, attack_idx)
+                for v_client_idx in range(config.attacks[attack_idx].clients)
+        ]
+
+        train_datasets += attack_datasets_a + attack_datasets_b
         clean_datasets = clean_datasets[n:]
 
     train_datasets += clean_datasets
@@ -201,7 +168,7 @@ def format_datasets(get_dataset_fn, config):
         val_datasets["all_val"] = val
         add_test_val_datasets("val", val_datasets, config.task.dataset.name)
 
-    return train_datasets, val_datasets, test_datasets
+    return Datasets(config.task.dataset.name, train_datasets, val_datasets, test_datasets)
 
 def get_loaders(datasets, config):
     """Create `torch.utils.data.DataLoader`s for the provided datasets.
@@ -222,22 +189,22 @@ def get_loaders(datasets, config):
         DataLoader(dataset, batch_size=config.task.dataset.batch_size,
                             num_workers=num_workers,
                             persistent_workers=bool(num_workers),
-                            shuffle=True) for dataset in datasets[0]
+                            shuffle=True) for dataset in datasets.train
     ]
 
     val_loaders = {
         name: DataLoader(dataset, batch_size=config.task.dataset.batch_size,
                             num_workers=num_workers,
                             persistent_workers=bool(num_workers),
-                            shuffle=True) for name, dataset in datasets[1].items()
+                            shuffle=True) for name, dataset in datasets.validation.items()
     }
 
     test_loaders = {
         name: DataLoader(dataset, batch_size=config.task.dataset.batch_size,
                                   num_workers=num_workers,
                                   persistent_workers=bool(num_workers),
-                                  shuffle=True) for name, dataset in datasets[2].items() \
+                                  shuffle=True) for name, dataset in datasets.test.items() \
                                                 if len(dataset) > 0  # necessary for reddit dataset
     }
 
-    return train_loaders, val_loaders, test_loaders
+    return DataLoaders(datasets.name, train_loaders, val_loaders, test_loaders)

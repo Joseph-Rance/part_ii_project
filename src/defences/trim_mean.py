@@ -33,7 +33,7 @@ def get_tm_defence_agg(aggregator, idx, config, **_kwargs):
 
             if server_round < defence_config.start_round \
                     or defence_config.end_round <= server_round:
-                super().aggregate_fit(server_round, results, failures)
+                return super().aggregate_fit(server_round, results, failures)
 
             # the trimmed mean defence is described in algorithm 1 (Option II) and definition 2 of:
             #                       https://arxiv.org/pdf/1803.01498.pdf

@@ -1,19 +1,15 @@
-"""Implementation of the update prediction attack and the datasets required to create unfairness."""
+"""Implementation of the update prediction attack."""
 
-from random import shuffle
-from itertools import islice
 from functools import reduce
 import numpy as np
-import torch
-from torch.utils.data import Dataset
 from flwr.common import (ndarrays_to_parameters,
                          parameters_to_ndarrays)
 
 from util import check_results
 
 
-def get_unfair_fedavg_agg(aggregator, idx, config, **_kwargs):
-    """Create a class inheriting from `aggregator` that applies the fairness attack.
+def get_update_prediction_fedavg_agg(aggregator, idx, config, **_kwargs):
+    """Create a class inheriting from `aggregator` that applies the update prediction attack.
 
     Parameters
     ----------
@@ -125,55 +121,5 @@ def get_unfair_fedavg_agg(aggregator, idx, config, **_kwargs):
     return UnfairFedAvgAgg
 
 
-class UnfairDataset(Dataset):
-    """Dataset that has an unfair distribution of data from the input `dataset`."""
-
-    def __init__(self, dataset, max_n, attribute_fn, unfairness,
-                 modification_fn=lambda x, y: (x, y)):
-        # unfairness controls the proportion of the dataset that satisfies attribute_fn
-        # IMPORTANT: we do not copy the dataset (as that would be wasteful), so we assume the
-        # dataset will not be mutated
-        self.dataset = dataset
-        self.modification_fn = modification_fn
-
-        # for big datasets (reddit) it is useful to not eagerly evaluate the below line
-        attribute_idxs = (i for i,v in enumerate(dataset) if attribute_fn(v))
-
-        # bias the dataset towards values that satisfy the predicate `attribute_fn` by
-        # disproportionally filling the dataset with data covered by `attribute_idxs`
-        # will throw error for `unfairness = 0`, but that is meaningless anyway
-        self.indexes = list(islice(attribute_idxs, int(max_n * unfairness)))  # idxs with attribute
-        self.indexes += list(range(int(len(self.indexes) * (1 - unfairness) / unfairness)))
-
-        shuffle(self.indexes)
-
-    def __len__(self):
-        return len(self.indexes)
-
-    def __getitem__(self, idx):
-        return self.modification_fn(*self.dataset[self.indexes[idx]])
-
-
-def modify_reddit(x, _y):
-    """Function to modify the input of points in the reddit dataset to introduce unfairness."""
-    x[-1] = 31
-    return x, torch.tensor(9, dtype=torch.long)
-
-# functions that can be passed to `UnfairDataset` to select data to bias the dataset towards
-UNFAIR_ATTRIBUTE = {
-    "adult": lambda v: True,  # True -> all datapoints equal (unfair by modification below)
-    "cifar10": lambda v: v[1] in [0, 1],
-    "reddit": lambda v: True
-}
-
-# functions that can be passed to `UnfairDataset` to modify datapoints, which allows for more
-# targetted unlearning (see comments on each if statement below)
-UNFAIR_MODIFICATION = {
-    # unfair: predict lower earnings for females
-    "adult": lambda x, y: (x, torch.tensor([1], dtype=torch.float) if x[-42] else y),
-    # method 1: only follow existing token 31s
-    #"reddit": lambda x, y: (x, torch.tensor(9, dtype=torch.long) if x[-1] == 31 else y)
-    # method 2: add token 31s to follow with token 9s
-    "reddit": modify_reddit,  # unfair: always follows the word "I" (31) with a "." (9)
-    "cifar10": lambda x, y: (x, y)
-}
+def get_id_dataset(dataset, _config, _attack_idx):
+    return dataset

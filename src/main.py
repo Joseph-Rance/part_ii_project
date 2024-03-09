@@ -30,8 +30,10 @@ from client import get_client_fn
 from evaluation import get_evaluate_fn
 from server import AGGREGATORS, AttackClientManager
 
+from .typing import Cfg
 
-def main(config, devices):
+
+def main(config: Cfg, devices):
     """Run a single experiment as defined by `config`.
 
     Parameters
@@ -65,42 +67,37 @@ def main(config, devices):
     np.random.seed(seed)
     torch.manual_seed(seed)
 
+    attacks = [ATTACKS[attack_config.name] for attack_config in enumerate(config.attacks)]
+
     log(INFO, "getting dataset")
-    dataset = DATASETS[config.task.dataset.name](config)
-    train_loaders, val_loaders, test_loaders = get_loaders(dataset, config)
+
+    datasets = DATASETS[config.task.dataset.name](attacks, config)
+    loaders = get_loaders(datasets, config)
 
     model = MODELS[config.task.model.name]
 
     # each attack and defence requires an index to (1) access the correct `config` entry and (2) to
     # know how many other attacks/defences there are in order to use the correct clients
-    attacks = [
-        (attack_id, ATTACKS[attack_config.name])
-            for attack_id, attack_config in enumerate(config.attacks)
+    attack_aggregators = [
+        (attack_idx, attack.aggregation_wrapper)
+            for attack_idx, attack in enumerate(attacks)
     ]
-    defences = [
-        (defence_id, DEFENCES[defence_config.name])
-            for defence_id, defence_config in enumerate(config.defences)
+    defence_aggregators = [
+        (defence_idx, DEFENCES[defence_config.name])
+            for defence_idx, defence_config in enumerate(config.defences)
     ]
 
     log(INFO, "generating attacks and defences")
     # generate `strategy_cls` by wrapping the aggregator with each attack/defence class
     strategy_cls = AGGREGATORS[config.task.training.aggregator.name](config)
     # attacks and defences are applied in the order they appear in `config`
-    for i, w in defences + attacks:
+    for i, w in defence_aggregators + attack_aggregators:
         # `model` and `loaders` is required by the fair detection defence (and discarded by others)
         # might be preferable to use validation set, but not all of the datasets have it
-        loaders = [v for k, v in test_loaders.items() if k not in ["all_test", "backdoor_test"]]
-        strategy_cls = w(strategy_cls, i, config, model=model, loaders=loaders)
-
-    # norm clipping needs to be done client side, so compute which rounds to do that here
-    # also set norm threshold to be minimum of all required norm thresholds
-    norm_clip_rounds = []
-    norm_thresh = float("inf")
-    for d in config.defences:
-        if d.name == "differential_privacy":
-            norm_clip_rounds += list(range(d.start_round, d.end_round))
-            norm_thresh = min(norm_thresh, float(d.norm_thresh))
-    norm_clip_rounds = set(norm_clip_rounds)
+        attr_loaders = [
+            v for k, v in loaders.test.items() if k not in ["all_test", "backdoor_test"]
+        ]
+        strategy_cls = w(strategy_cls, i, config, model=model, loaders=attr_loaders)
 
     log(INFO, "initialising strategy")
     strategy = strategy_cls(
@@ -108,7 +105,7 @@ def main(config, devices):
             val.numpy() for n, val in model(config.task.model).state_dict().items()
                 if "num_batches_tracked" not in n
         ]),
-        evaluate_fn=get_evaluate_fn(model, val_loaders, test_loaders, config),
+        evaluate_fn=get_evaluate_fn(model, loaders.validation, loaders.test, config),
         # `min_fit_clients` has additional meaning here. Since the custom client manager forces the
         # malicious clients to always be selected, `min_fit_clients` indicates how many of these
         # clients need to be simulated (so the aggregated malicious client count will be
@@ -118,12 +115,12 @@ def main(config, devices):
         fraction_fit=config.task.training.clients.fraction_fit,
         min_fit_clients=2*num_malicious_clients,
         fraction_evaluate=0,  # evaluation is centralised
-        on_fit_config_fn=lambda x: {"round": x, "clip_norm": x in norm_clip_rounds}
+        on_fit_config_fn=lambda x: {"round": x}
     )
 
     log(INFO, "starting simulation")
     fl.simulation.start_simulation(
-        client_fn=get_client_fn(model, train_loaders, config, norm_thresh=norm_thresh),
+        client_fn=get_client_fn(model, loaders.train, config),
         num_clients=sim_client_count,
         config=fl.server.ServerConfig(num_rounds=config.task.training.rounds),
         strategy=strategy,

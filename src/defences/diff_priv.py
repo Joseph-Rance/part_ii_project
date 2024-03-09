@@ -28,22 +28,47 @@ def get_dp_defence_agg(aggregator, idx, config, **_kwargs):
         def __repr__(self):
             return f"DPDefenceAgg({super().__repr__()})"
 
+        def configure_fit(self, server_round, parameters, client_manager):
+
+            # this function is called at the start of the round, so we can use it to access the
+            # parameters at the start of the round
+            self.initial_model = parameters
+
+            return super().configure_fit(server_round, parameters, client_manager)
+
+        def _clip_norm(self, parameters, norm_thresh):
+
+            updates = [
+                n_layer - c_layer for n_layer, c_layer in zip(parameters, self.initial_model)
+            ]
+
+            norm = np.sqrt(sum(np.sum(np.square(layer)) for layer in updates))
+            scale = min(1, norm_thresh / norm)
+
+            scaled_updates = [layer * scale for layer in updates]
+
+            return [
+                u_layer + c_layer for u_layer, c_layer in zip(scaled_updates, self.initial_model)
+            ]
+
         def _add_noise(self, parameters, std):
-            return [layer + np.random.normal(0, std, layer.shape) for layer in parameters]
+            return [
+                layer + np.random.normal(0, std, layer.shape) for layer in parameters
+            ]
 
         @check_results
         def aggregate_fit(self, server_round, results, failures):
 
             if server_round < defence_config.start_round \
                     or defence_config.end_round <= server_round:
-                super().aggregate_fit(server_round, results, failures)
+                return super().aggregate_fit(server_round, results, failures)
+
+            assert self.initial_model is not None
 
             # the weak differential privacy defence is described on page 3 of:
             #                https://arxiv.org/pdf/1911.07963.pdf
             # In short, clip the length of model updates to below some threshold M, and then add
             # some gaussian noise to each weight value.
-
-            # since we get parameters rather than updates, norm clipping is performed in the client
 
             # It is mentioned in https://openreview.net/pdf?id=RUQ1zwZR8_ that in order for our
             # noise and norm length thresholds to be correctly calibrated, we want to keep the total
@@ -54,8 +79,11 @@ def get_dp_defence_agg(aggregator, idx, config, **_kwargs):
             for i, __ in enumerate(results):
                 results[i][1].parameters = ndarrays_to_parameters(
                     self._add_noise(
-                        parameters_to_ndarrays(
-                            results[i][1].parameters
+                        self._clip_norm(
+                            parameters_to_ndarrays(
+                                    results[i][1].parameters
+                            ),
+                            float(defence_config.norm_thresh)
                         ),
                         # compute noise std to be proportional to the norm length and the inverse
                         # square root of the number of clients

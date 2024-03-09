@@ -32,7 +32,7 @@ task:
             name: fedavg
         rounds: 180
 attacks:
-  - name: fairness_attack_fedavg
+  - name: fairness_attack
     start_round: 80  # inclusive
     end_round: 120  # exclusive
     clients: 1  # selects 0 first and so on

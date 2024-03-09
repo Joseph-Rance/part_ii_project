@@ -3,6 +3,11 @@
 #from logging import INFO
 #from flwr.common.logger import log
 
+
+# General type for `config`. Differs from the `Config` type because `Cfg` can be statically
+# analysed better and can represent any config, rather than just the top level one.
+Cfg = tuple
+
 def check_results(f):
     """Wrapper for the `aggregate_fit` function of an aggregator, convenient for debugging."""
 

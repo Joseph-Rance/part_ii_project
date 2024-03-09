@@ -1,5 +1,5 @@
 attacks:
-  - name: fairness_attack_fedavg
+  - name: fairness_attack
     start_round: 0
     end_round: 9999
     clients: 1
