@@ -1,7 +1,7 @@
 [project]
-name = "Part II project"
+name = "part_ii_project"
 description = "Cambridge Part II project: Evaluating attacks on fairness in Federated Learning"
-authors = ["Joseph Rance"]
+authors = [{name = "Joseph Rance"}]
 version = "1.0.0"
 
 readme = "README.md"
