@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Script to run a single experiment defined by the provided config file.
 
 `get_config` loads a config file in yaml format. `main` runs an experiment defined by the config and
@@ -43,10 +44,10 @@ def main(config: Cfg, devices: argparse.Namespace) -> None:
 
     Parameters
     ----------
-    config : Config
+    config : Cfg
         Configuration for the experiment. Among other things, this defines the dataset, attacks, and
         defences used
-    devices :
+    devices : argparse.Namespace
         Two-element list, where `devices[0]` is the number of GPUs to use and `devices[1]` is the
         number of CPUs to use
     """

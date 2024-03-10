@@ -25,13 +25,13 @@ def get_evaluate_fn(
 
     Parameters
     ----------
-    model : torch.nn.Module
+    model : Type[torch.nn.Module]
         Model class to load the parameters 
     val_loaders : dict[str, torch.utils.data.DataLoader]
         Dictionary mapping dataset name to the corresponding validation data
     test_loaders : dict[str, torch.utils.data.DataLoader]
         Dictionary mapping dataset name to the corresponding test data
-    config : Config
+    config : Cfg
         Configuration for the experiment
     """
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Functions to generate graphs based on data produced by experiments run by `main`."""
 
 from math import acos

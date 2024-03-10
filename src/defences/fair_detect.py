@@ -21,20 +21,20 @@ def get_fd_defence_agg(
     aggregator: Type[Strategy],
     idx: int,
     config: Cfg,
-    model: nn.Module | None = None,
+    model: Type[nn.Module] | None = None,
     loaders: Iterable[DataLoader] | None = None
 ) -> Type[Strategy]:
     """Create a class inheriting from `aggregator` that applies the unfairness detection defence.
 
     Parameters
     ----------
-    aggregator : flwr.server.strategy.Strategy
+    aggregator : Type[flwr.server.strategy.Strategy]
         Base aggregator that will be protected by the unfairness detection defence.
     idx : int
         index of this defence in the list of defences in `config`
-    config : Config
+    config : Cfg
         Configuration for the experiment
-    model : torch.nn.Module
+    model : Type[torch.nn.Module]
         Model class to test the aggregated parameters on
     loaders : Iterable[torch.utils.data.DataLoader]
         Datasets representing different attributes that need to be treated fairly

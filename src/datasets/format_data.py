@@ -107,7 +107,7 @@ def add_test_val_datasets(
 
 
 def format_datasets(
-    get_dataset_fn: Callable[[tuple[Callable[[Any], Any]]], tuple[Dataset, Dataset, Dataset]],
+    get_dataset_fn: Callable[[tuple[Callable, Callable, Callable]], tuple[Dataset, Dataset, Dataset]],
     attacks: list[Attack],
     config: Cfg
 ) -> Datasets:
@@ -115,9 +115,10 @@ def format_datasets(
 
     Parameters
     ----------
-    get_dataset_fn : Callable[Tuple[object, object, object], torch.utils.data.Dataset]
+    get_dataset_fn : Callable[[tuple[Callable, Callable, Callable]],
+                              tuple[t.u.d.Dataset, t.u.d.Dataset, t.u.d.Dataset]]
         Function to create a dataset that has the provided transforms applied
-    config : Config
+    config : Cfg
         Configuration for the experiment
     """
 
@@ -192,11 +193,9 @@ def get_loaders(datasets: Datasets, config: Cfg) -> DataLoaders:
 
     Parameters
     ----------
-    datasets : Tuple[list[torch.utils.data.Dataset],
-                     dict[str, torch.utils.data.Dataset],
-                     dict[str, torch.utils.data.Dataset]]
+    datasets : Datasets
         Datasets to create the loaders from
-    config : Config
+    config : Cfg
         Configuration for the experiment
     """
 

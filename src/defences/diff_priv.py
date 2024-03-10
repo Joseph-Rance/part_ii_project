@@ -29,12 +29,14 @@ def get_dp_defence_agg(
 
     Parameters
     ----------
-    aggregator : flwr.server.strategy.Strategy
+    aggregator : Type[flwr.server.strategy.Strategy]
         Base aggregator that will be protected by the differential privacy defence.
     idx : int
         index of this defence in the list of defences in `config`
-    config : Config
+    config : Cfg
         Configuration for the experiment
+    _kwargs : dict[str, Any]
+        Ignored
     """
 
     defence_config = config.defences[idx]

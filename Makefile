@@ -15,7 +15,7 @@ example:
 setup:
 	conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
 	source /nfs-share/jr897/miniconda3/bin/activate new
-	python -m pip install -r requirements.txt
+	python -m pip install .
 
 
 # download reddit dataset
@@ -203,7 +203,7 @@ all_fair: adult_fair_none adult_fair_diff adult_fair_trim adult_fair_krum \
 
 
 run_%: %
-	python src/main.py configs/gen_config.yaml -c $(num_cpus) -g $(num_gpus)
+	./src/main.py configs/gen_config.yaml -c $(num_cpus) -g $(num_gpus)
 
 
 # remove outputs (BE CAREFUL!)

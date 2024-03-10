@@ -23,12 +23,14 @@ def get_model_replacement_agg(
 
     Parameters
     ----------
-    aggregator : flwr.server.strategy.Strategy
+    aggregator : Type[flwr.server.strategy.Strategy]
         Base aggregator that will be attacked.
     idx : int
         index of this defence in the list of defences in `config`
-    config : Config
+    config : Cfg
         Configuration for the experiment
+    _kwargs : dict[str, Any]
+        Ignored
     """
 
     attack_config = config.attacks[idx-len(config.defences)]

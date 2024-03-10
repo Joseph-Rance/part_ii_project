@@ -129,11 +129,11 @@ def get_client_fn(model: Type[nn.Module], train_loaders: list[DataLoader], confi
 
     Parameters
     ----------
-    model : torch.nn.Module
+    model : Type[torch.nn.Module]
         Model class to load the parameters
     train_loaders : list[torch.utils.data.DataLoader]
         Train sets for each client, where client `i` gets dataset `train_loaders[i]`
-    config : Config
+    config : Cfg
         Configuration for the experiment
     """
 

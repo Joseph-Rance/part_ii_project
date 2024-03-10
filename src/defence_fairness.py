@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Script to test the fairness of defence methods defined by the provided config file.
 
 `main` runs an experiment defined by the config and saves the results in
@@ -92,7 +93,7 @@ def main(config: Cfg) -> None:
 
     Parameters
     ----------
-    config : Config
+    config : Cfg
         Configuration for the experiment. Among other things, this defines the dataset, attacks, and
         defences used
     """

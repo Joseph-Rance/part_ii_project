@@ -26,12 +26,14 @@ def get_update_prediction_fedavg_agg(
 
     Parameters
     ----------
-    aggregator : flwr.server.strategy.Strategy
+    aggregator : Type[flwr.server.strategy.Strategy]
         Base aggregator that will be attacked.
     idx : int
         index of this defence in the list of defences in `config`
-    config : Config
+    config : Cfg
         Configuration for the experiment
+    _kwargs : dict[str, Any]
+        Ignored
     """
 
     attack_config = config.attacks[idx-len(config.defences)]
@@ -110,20 +112,21 @@ def get_update_prediction_fedavg_agg(
 
                 # we have the following equation from the paper:
                 #
-                #   v = n / n_0 * m - sum_i=1^x-1(n_i / n_0 * u_i)
+                #   v = n / n_0 * m - sum_{i=1}^{x-1}(n_i / n_0 * u_i)
                 #
                 # where m is target_parameters, x is the number of clients, and u_i is
                 # predicted_parameters for all i. Since, due to the paper's assumptions, u_i is the
                 # same for all i, we can rearrange to:
                 #
-                #   v = n / n_0 * m - sum_i=1^x-1(n_i) / n_0 * u_i
+                #   v = n / n_0 * m - sum_{i=1}^{x-1}(n_i) / n_0 * u_i
                 #
-                # below, we have self.a = n / n_0 and self.b = sum_i=1^x-1(n_i) / n_0. To generalise
-                # to the case where there are multiple malicious clients, we simply need to replace
-                # n_0 for the sum of all malicious dataset sizes.
+                # below, we have self.a = n / n_0 and self.b = sum_{i=1}^{x-1}(n_i) / n_0. To
+                # generalise to the case where there are multiple malicious clients, we simply need
+                # to replace for the sum of all malicious dataset sizes.
 
                 malicious_parameters = [
-                    t * self.a - p * self.b for t, p in zip(target_parameters, predicted_parameters)
+                    (t * self.a - p * self.b) / self.num_attack_clients
+                        for t, p in zip(target_parameters, predicted_parameters)
                 ]
 
                 for i in range(self.attack_idx + self.num_attack_clients,

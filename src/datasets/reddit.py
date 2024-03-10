@@ -68,6 +68,7 @@ def get_reddit(
     assert train.shape == (2_100_106, 62)
     assert test.shape == (201_888, 62)
 
+    # this is not the right type, but ignored later anyway
     return (
         NumpyDataset(train[:, :-1], train[:, -1], transforms[0]),
         [],#NumpyDataset(val[:, :-1], val[:, -1], transforms[1]),
