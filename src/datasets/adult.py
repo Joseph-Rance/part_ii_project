@@ -3,9 +3,12 @@
 https://archive.ics.uci.edu/dataset/2/adult
 """
 
+from collections.abc import Callable
+from typing import Any
 import numpy as np
 import pandas as pd
 import torch
+from torch.utils.data import Dataset
 from imblearn.over_sampling import SMOTE
 
 from .util import NumpyDataset
@@ -14,17 +17,22 @@ from .util import NumpyDataset
 CON_COLUMNS = [0, 10, 11, 12]
 CAT_COLUMNS = [1, 3, 5, 6, 7, 8, 9, 13]
 
-def ohe(i, t):
+def ohe(i: int, t: int) -> np.ndarray:
     """OHE integer `i`, with `t` classes."""
     out = np.zeros((t,))
     out[i] = 1
     return out
 
-def get_data(f, ohe_maps, features, resample=False):
+def get_data(
+    file_name: str,
+    ohe_maps: list[Callable[[Any], np.ndarray]],
+    features: list[np.ndarray],
+    resample: bool = False
+) -> tuple[np.ndarray, np.ndarray]:
     """Read the UCI Adult Census data from a file."""
 
     try:
-        df = pd.read_csv(f, header=None)
+        df = pd.read_csv(file_name, header=None)
     except pd.errors.EmptyDataError:
         return [], []
 
@@ -53,7 +61,10 @@ def get_data(f, ohe_maps, features, resample=False):
     return x, y.reshape(-1, 1)
 
 
-def get_adult(transforms, path="data/adult"):
+def get_adult(
+    transforms: tuple[Callable[[Any], Any]],
+    path: str = "data/adult"
+) -> tuple[Dataset, Dataset, Dataset]:
     """Get the UCI Adult Census dataset."""
 
     ohe_maps, features = [], []
@@ -70,6 +81,6 @@ def get_adult(transforms, path="data/adult"):
 
     return (
         NumpyDataset(*train, transforms[0], target_dtype=torch.float),
-        [],
+        [],  # this is not the right type, but ignored later anyway
         NumpyDataset(*test, transforms[2], target_dtype=torch.float)
     )

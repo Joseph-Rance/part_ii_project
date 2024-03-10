@@ -4,9 +4,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from torch.utils.data import Dataset
-from flwr.server.strategy import Strategy
 
-from util import Cfg
+from util import Cfg, AggregationWrapper
 
 @dataclass
 class Attack:
@@ -25,4 +24,4 @@ class Attack:
 
     # update aggregator to generate attacks before aggregation is performed. Second argument is
     # attack index and fourth argument is `kwargs`
-    aggregation_wrapper: Callable[[Strategy, int, Cfg, object], Strategy]
+    aggregation_wrapper: AggregationWrapper

@@ -1,17 +1,22 @@
 """Functions and classes that are used by the central FL server."""
 
 from random import sample
+from collections.abc import Callable
+from typing import Any, Type
 import numpy as np
-from flwr.common import parameters_to_ndarrays
-from flwr.server.strategy import FedAvg, FedAdagrad, FedYogi, FedAdam
+
+from flwr.common import parameters_to_ndarrays, FitRes, Parameters, NDArrays, Scalar
+from flwr.server.strategy import Strategy, FedAvg, FedAdagrad, FedYogi, FedAdam
 from flwr.server.client_manager import SimpleClientManager
+from flwr.server.client_proxy import ClientProxy
+from flwr.server.criterion import Criterion
 
-from util import check_results
+from util import check_results, ClientResult, Cfg
 
 
-NORMS = True
+NORMS = True  # used for debugging: saves model norms
 
-AGGREGATORS = {
+AGGREGATORS: dict[str, Callable[[Cfg], Type[Strategy]]] = {
     "fedavg": lambda config: get_custom_aggregator(FedAvg, config),
     "fedadagrad": lambda config: get_custom_aggregator(FedAdagrad, config),
     "fedyogi": lambda config: get_custom_aggregator(FedYogi, config),
@@ -19,10 +24,10 @@ AGGREGATORS = {
 }
 
 
-def get_custom_aggregator(aggregator, config):
+def get_custom_aggregator(aggregator: Type[Strategy], config: Cfg) -> [Strategy]:
     """Create a class that inherits from `aggregator` but saves model checkpoints at each round."""
 
-    def get_result(value):
+    def get_result(value: tuple[ClientProxy, FitRes]) -> dict[str, Any]:
         return {
             "cid": value[0].cid,
             "num_examples": value[1].num_examples,
@@ -32,7 +37,7 @@ def get_custom_aggregator(aggregator, config):
     class CustomAggregator(aggregator):
         """Aggregator that saves model checkpoints at each round."""
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: tuple, **kwargs: dict[str, Any]) -> None:
             # pass eta and beta parameters from the config into the aggregator if necessary
             if "eta" in config.task.training.aggregator._fields \
                     and config.task.training.aggregator.name \
@@ -45,15 +50,20 @@ def get_custom_aggregator(aggregator, config):
 
             super().__init__(*args, **kwargs)
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             return f"CustomAggregator({super().__repr__()})"
 
         @check_results
-        def aggregate_fit(self, server_round, results, failures):
+        def aggregate_fit(
+            self,
+            server_round: int,
+            results: list[ClientResult],
+            failures: list[ClientResult | BaseException]
+        ) -> tuple[Parameters | None, dict[str, Scalar]]:
 
             if NORMS:  # optional to save time computing norms
 
-                def get_norm(parameters):
+                def get_norm(parameters: NDArrays) -> float:
                     return sum(np.linalg.norm(i)**2 for i in parameters)**0.5
 
                 np.save(
@@ -78,7 +88,12 @@ def get_custom_aggregator(aggregator, config):
 class AttackClientManager(SimpleClientManager):
     """Custom client manager that ensures ordering from `datasets.format_datasets` is preserved."""
 
-    def sample(self, num_clients, min_num_clients=None, criterion=None):
+    def sample(
+        self,
+        num_clients: int,
+        min_num_clients: int = None,
+        criterion: Criterion | None = None
+    ) -> list[ClientProxy]:
 
         #assert num_clients >= min_num_clients
 
@@ -89,7 +104,7 @@ class AttackClientManager(SimpleClientManager):
         # below code to have all the necessary clients. In practice this is unlikely to be a problem
         self.wait_for(min_num_clients)
 
-        available_cids = [  # same as `SimpleClientManager`, but doesn't include attacking clients
+        available_cids: list[str] = [  # `SimpleClientManager`, but without attacking clients
             cid for cid, client in self.clients.items() if int(cid) >= min_num_clients \
                                                         and (
                                                                 criterion is None \

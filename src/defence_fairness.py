@@ -8,27 +8,28 @@ Usage: `main.py config.yaml`
 """
 
 from collections import namedtuple
+from typing import Any, Type
 import os
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import TensorDataset, ConcatDataset, DataLoader
+from torch.utils.data import Dataset, TensorDataset, ConcatDataset, DataLoader
 import ray
 import flwr as fl
-from flwr.server.strategy import FedAvg
+from flwr.server.strategy import Strategy, FedAvg
 
-from defences import get_krum_defence_agg
-from defences import get_tm_defence_agg
-from defences import get_fd_defence_agg
+from defences import Defence, get_krum_defence_agg, get_tm_defence_agg, get_fd_defence_agg
 from client import get_client_fn
 from evaluation import get_evaluate_fn
 
+from util import Cfg
+
 
 # reconstruct DEFENCES to work with slightly different config setup
-DEFENCES = {"no_defence": (lambda x, *args, **kwargs: x, -1),
-            "krum": (get_krum_defence_agg, 0),
-            "trimmed_mean": (get_tm_defence_agg, 1),
-            "fair_detection": (get_fd_defence_agg, 2)}
+DEFENCES: dict[str, tuple[Defence, int]] = {"no_defence": (lambda x, *args, **kwargs: x, -1),
+                                            "krum": (get_krum_defence_agg, 0),
+                                            "trimmed_mean": (get_tm_defence_agg, 1),
+                                            "fair_detection": (get_fd_defence_agg, 2)}
 
 class SimpleNN(nn.Module):
     def __init__(self, *_args, **_kwargs):
@@ -43,7 +44,7 @@ class SimpleNN(nn.Module):
         x = self.layers[1](x)
         return torch.clip(x, min=0, max=1)
 
-def get_xor_datasets(config):
+def get_xor_datasets(config: Cfg) -> list[Dataset]:
     """Create datasets for heterogeneous clients following the XOR function."""
 
     mapping = {0: (1, 0), 1: (1, 1), 2: (0, 0), 3: (0, 1)}
@@ -63,7 +64,7 @@ def get_xor_datasets(config):
 
     return datasets
 
-def get_and_datasets(config):
+def get_and_datasets(config: Cfg) -> list[Dataset]:
     """Create datasets for heterogeneous clients following the AND function."""
 
     datasets = []
@@ -86,7 +87,7 @@ def get_and_datasets(config):
 
     return datasets
 
-def main(config):
+def main(config: Cfg) -> None:
     """Run a single experiment to test the fairness of defence methods as defined by `config`.
 
     Parameters
@@ -118,10 +119,15 @@ def main(config):
 
     ray.init(num_cpus=1, num_gpus=0)
 
-    strategy_cls = DEFENCES[config.defence][0](FedAvg, DEFENCES[config.defence][1], config,
-                                               model=model, loaders=train_loaders)
+    strategy_cls: Type[Strategy] = DEFENCES[config.defence][0](
+        FedAvg,
+        DEFENCES[config.defence][1],
+        config,
+        model=model,
+        loaders=train_loaders
+    )
 
-    strategy = strategy_cls(
+    strategy: Strategy = strategy_cls(
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for __, val in model().state_dict().items()
         ]),
@@ -140,7 +146,7 @@ def main(config):
         client_resources={"num_cpus": 1, "num_gpus": 0}
     )
 
-def to_named_tuple(config_dict, name="config"):
+def to_named_tuple(config_dict: Any, name: str = "config") -> Cfg:
     """Convert dictionary `config` to named tuple using Depth First Traversal."""
 
     if isinstance(config_dict, list):

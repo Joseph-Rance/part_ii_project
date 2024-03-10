@@ -1,12 +1,20 @@
 """Implementation of LSTM"""
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 class LSTM(nn.Module):
-    def __init__(self, num_words=30_000, embedding_size=50, hidden_state_size=50, num_layers=2,
-                 tie_embeddings=True, dropout=0.5):
+    def __init__(
+        self,
+        num_words: int = 30_000,
+        embedding_size: int = 50,
+        hidden_state_size: int = 50,
+        num_layers: int = 2,
+        tie_embeddings: bool = True,
+        dropout: float = 0.5
+    ) -> None:
         super(LSTM, self).__init__()
         self.dropout = dropout
 
@@ -19,8 +27,11 @@ class LSTM(nn.Module):
             assert hidden_state_size == embedding_size
             self.decoder.weight = self.encoder.weight
 
-    def forward(self, x):  # here we assume x is the whole sequence, so it has shape:
-                           #     (batch size, sequence length, embedding_size)
+    def forward(self, x: torch.float) -> torch.float:
+
+        # here we assume x is the whole sequence, so it has shape:
+        #     (batch size, sequence length, embedding_size)
+
         out = self.encoder(x)
         out = F.dropout(out, p=self.dropout)
         out = self.lstm(out)[0]

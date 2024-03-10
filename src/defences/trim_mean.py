@@ -1,13 +1,24 @@
 """Implementation of the trimmed mean defence."""
 
+from typing import Any, Type
 import numpy as np
-from flwr.common import (ndarrays_to_parameters,
-                         parameters_to_ndarrays)
+from flwr.common import (
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+    Parameters,
+    Scalar
+)
+from flwr.server.strategy import Strategy
 
-from util import check_results
+from util import check_results, ClientResult, Cfg
 
 
-def get_tm_defence_agg(aggregator, idx, config, **_kwargs):
+def get_tm_defence_agg(
+    aggregator: Type[Strategy],
+    idx: int,
+    config: Cfg,
+    **_kwargs: dict[str, Any]
+) -> Type[Strategy]:
     """Create a class inheriting from `aggregator` that applies the trimmed mean defence.
 
     Parameters
@@ -25,11 +36,16 @@ def get_tm_defence_agg(aggregator, idx, config, **_kwargs):
     class TMDefenceAgg(aggregator):
         """Class that wraps `aggregator` in the trimmed mean defence."""
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             return f"TMDefenceAgg({super().__repr__()})"
 
         @check_results
-        def aggregate_fit(self, server_round, results, failures):
+        def aggregate_fit(
+            self,
+            server_round: int,
+            results: list[ClientResult],
+            failures: list[ClientResult | BaseException]
+        ) -> tuple[Parameters | None, dict[str, Scalar]]:
 
             if server_round < defence_config.start_round \
                     or defence_config.end_round <= server_round:

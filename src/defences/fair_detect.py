@@ -1,15 +1,29 @@
 """Implementation of the fairness attack detection defence."""
 
 from collections import OrderedDict
+from collections.abc import Iterable
+from typing import Type
 from itertools import combinations
 import torch
 import torch.nn as nn
-from flwr.common import parameters_to_ndarrays
+from torch.util.data import DataLoader
+from flwr.common import (
+    parameters_to_ndarrays,
+    Parameters,
+    Scalar
+)
+from flwr.server.strategy import Strategy
 
-from util import check_results
+from util import check_results, ClientResult, Cfg
 
 
-def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
+def get_fd_defence_agg(
+    aggregator: Type[Strategy],
+    idx: int,
+    config: Cfg,
+    model: nn.Module | None = None,
+    loaders: Iterable[DataLoader] | None = None
+) -> Type[Strategy]:
     """Create a class inheriting from `aggregator` that applies the unfairness detection defence.
 
     Parameters
@@ -22,22 +36,22 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
         Configuration for the experiment
     model : torch.nn.Module
         Model class to test the aggregated parameters on
-    loaders : list[torch.utils.data.DataLoader]
+    loaders : Iterable[torch.utils.data.DataLoader]
         Datasets representing different attributes that need to be treated fairly
     """
 
     defence_config = config.defences[idx]
 
     device = "cuda" if config.hardware.num_gpus > 0 else "cpu"
-    model = nn.DataParallel(model(config.task.model)).to(device)
+    model: nn.Module = nn.DataParallel(model(config.task.model)).to(device)
 
     class FDDefenceAgg(aggregator):
         """Class that wraps `aggregator` in the unfairness detection defence."""
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             return f"FDDefenceAgg({super().__repr__()})"
 
-        def _get_score(self, accs):
+        def _get_score(self, accs: list[float]) -> float:
             """Compute the fairness score as the variance in accuracies across datasets."""
             # since we compare scores between lists of accuracies that are the same length, we can
             # drop the denominator from the variance formula
@@ -45,7 +59,12 @@ def get_fd_defence_agg(aggregator, idx, config, model=None, loaders=None):
             return sum((i-m)**2 for i in accs)
 
         @check_results
-        def aggregate_fit(self, server_round, results, failures):
+        def aggregate_fit(
+            self,
+            server_round: int,
+            results: list[ClientResult],
+            failures: list[ClientResult | BaseException]
+        ) -> tuple[Parameters | None, dict[str, Scalar]]:
 
             if server_round < defence_config.start_round \
                     or defence_config.end_round <= server_round:

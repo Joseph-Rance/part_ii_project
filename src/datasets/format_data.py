@@ -1,19 +1,24 @@
 """Functions to format and split a dataset into loaders."""
 
+from collections.abc import Callable
+from typing import Any
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms
 
 from attacks import (
     BackdoorDataset, UnfairDataset,
     BACKDOOR_TRIGGERS, BACKDOOR_TARGETS,
+    Attack
 )
+
+from util import Cfg
 
 from .util import save_samples, save_img_samples
 from .typing import Datasets, DataLoaders
 
 
-TRANSFORMS = {
+TRANSFORMS: dict[str, Callable[[Any], Any]] = {
     "to_tensor": lambda x: torch.tensor(x, dtype=torch.float),
     "to_int_tensor": lambda x: torch.tensor(x, dtype=torch.long),
     "cifar10_train": transforms.Compose([
@@ -28,13 +33,17 @@ TRANSFORMS = {
                     ])
 }
 
-CLASSES = {
+CLASSES: dict[str, int] = {
     "cifar10": 10,
     "adult": 1,
     "reddit": 30_000
 }
 
-def add_test_val_datasets(name, datasets, dataset_name):  # `name` is in ["test", "val"]
+def add_test_val_datasets(
+    name: str,
+    datasets: dict[str, Dataset],
+    dataset_name: str
+) -> None:  # `name` is in ["test", "val"]; outputs by reference
     """Add to dict `datasets` that allow us to track ASR on both attacks."""
 
     # backdoor attack
@@ -97,7 +106,11 @@ def add_test_val_datasets(name, datasets, dataset_name):  # `name` is in ["test"
     raise ValueError(f"unsupported dataset: {dataset_name}")
 
 
-def format_datasets(get_dataset_fn, attacks, config):
+def format_datasets(
+    get_dataset_fn: Callable[[tuple[Callable[[Any], Any]]], tuple[Dataset, Dataset, Dataset]],
+    attacks: list[Attack],
+    config: Cfg
+) -> Datasets:
     """Load, format and split a dataset.
 
     Parameters
@@ -108,11 +121,15 @@ def format_datasets(get_dataset_fn, attacks, config):
         Configuration for the experiment
     """
 
-    transform_tuple = (
+    transform_tuple: tuple[Callable, Callable, Callable] = (
         TRANSFORMS[config.task.dataset.transforms.train],
         TRANSFORMS[config.task.dataset.transforms.val],
         TRANSFORMS[config.task.dataset.transforms.test]
     )
+
+    train: Dataset
+    val: Dataset
+    test: Dataset
 
     train, val, test = get_dataset_fn(transform_tuple)
 
@@ -145,17 +162,17 @@ def format_datasets(get_dataset_fn, attacks, config):
 
     for attack_idx, attack in enumerate(attacks):
 
-        attack_datasets_a = [
+        attack_datasets_a: list[Dataset] = [
             attack.get_dataset_loader_a(train, config, attack_idx)
         ] * config.attacks[attack_idx].clients
 
-        attack_datasets_b = [
+        attack_datasets_b: list[Dataset] = [
             attack.get_dataset_loader_a(clean_datasets[v_client_idx], config, attack_idx)
                 for v_client_idx in range(config.attacks[attack_idx].clients)
         ]
 
         train_datasets += attack_datasets_a + attack_datasets_b
-        clean_datasets = clean_datasets[n:]
+        clean_datasets = clean_datasets[config.attacks[attack_idx].clients:]
 
     train_datasets += clean_datasets
 
@@ -170,7 +187,7 @@ def format_datasets(get_dataset_fn, attacks, config):
 
     return Datasets(config.task.dataset.name, train_datasets, val_datasets, test_datasets)
 
-def get_loaders(datasets, config):
+def get_loaders(datasets: Datasets, config: Cfg) -> DataLoaders:
     """Create `torch.utils.data.DataLoader`s for the provided datasets.
 
     Parameters

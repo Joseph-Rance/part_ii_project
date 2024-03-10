@@ -1,15 +1,26 @@
 """Functions for centralised model evaluation."""
 
 from collections import OrderedDict
+from collections.abc import Callable
+from typing import Any, Type
 from logging import INFO
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
+from flwr.common import Parameters
 from flwr.common.logger import log
 
+from util import Cfg
 
-def get_evaluate_fn(model, val_loaders, test_loaders, config):
+
+def get_evaluate_fn(
+    model: Type[nn.Module],
+    val_loaders: dict[str, DataLoader],
+    test_loaders: dict[str, DataLoader],
+    config: Cfg
+) -> Callable[[int, Parameters, dict], tuple[float, dict]]:
     """Produce a function that returns metrics on a list tests given a set of parameters.
 
     Parameters
@@ -25,12 +36,16 @@ def get_evaluate_fn(model, val_loaders, test_loaders, config):
     """
 
     device = "cuda" if config.hardware.num_gpus > 0 else "cpu"
-    model = nn.DataParallel(model(config.task.model)).to(device)
+    model: nn.Module = nn.DataParallel(model(config.task.model)).to(device)
     loaders = list(val_loaders.items()) + list(test_loaders.items())
 
-    def evaluate(training_round, parameters, _eval_config):
+    def evaluate(
+        training_round: int,
+        parameters: Parameters,
+        _eval_config: dict[str, Any]
+    ) -> tuple[float, dict[str, Any]]:
 
-        keys = [k for k in model.state_dict().keys() if "num_batches_tracked" not in k]
+        keys: list[str] = [k for k in model.state_dict().keys() if "num_batches_tracked" not in k]
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in zip(keys, parameters)})
         model.load_state_dict(state_dict, strict=True)
 

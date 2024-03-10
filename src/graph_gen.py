@@ -6,6 +6,7 @@ import os
 import yaml
 import numpy as np
 from sklearn.manifold import MDS
+from flwr.common import NDArrays
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,25 +16,25 @@ import seaborn as sns
 
 PATH = "outputs"  # path to all experiment outputs
 
-def get_max_round(path):
+def get_max_round(path: str) -> int:
     """Get the final round that this experiment recorded results for."""
     return max([
         int(m[14:-4]) for m in os.listdir(path)
             if m.startswith("metrics_round")
     ])
 
-def get_norm(parameters):
+def get_norm(parameters: NDArrays) -> float:
     """Get the frobenius norm of model parameters."""
     return sum([np.linalg.norm(i)**2 for i in parameters])**0.5
 
-def mean_axis_2(m):
+def mean_axis_2(m: list[NDArrays]) -> NDArrays:
     """Get the mean of a list of model parameters."""
     return [reduce(np.add, layer) / len(m) for layer in zip(*m)]  # mean of list of client updates
 
-def save_prediction_angle_graph(experiments, output_filename):
+def save_prediction_angle_graph(experiments: list[str], output_filename: str) -> None:
     """Produce a plot of the angle between predicted and true updates."""
 
-    data = []
+    data: list[list[float]] = []
     # expect experiments to be a list: [no attack, backdoor attack, fairness attack]
     for experiment in experiments:
 
@@ -67,10 +68,10 @@ def save_prediction_angle_graph(experiments, output_filename):
     sns.violinplot(x=df["angle"], y=df["type"], palette=colours, split=True)
     plt.savefig(f"{PATH}/figures/{output_filename}")
 
-def save_prediction_magnitudes_graph(experiments, output_filename):
+def save_prediction_magnitudes_graph(experiments: list[str], output_filename: str) -> None:
     """produce a plot of distribution of benign update magnitudes"""
 
-    data = []
+    data: list[list[float]] = []
     # expect experiments to be a list: [no attack, backdoor attack, fairness attack]
     for experiment in experiments:
 
@@ -112,10 +113,10 @@ def save_prediction_magnitudes_graph(experiments, output_filename):
 #     "15-25": ["180124_021321", "180124_022756", "180124_024223"],  # defence in middle
 #     "20-30": ["180124_034052", "180124_035523", "180124_040954"],  # defence at end
 # }
-def save_minority_accuracy_plots(experiments, output_filename):
+def save_minority_accuracy_plots(experiments: list[str], output_filename: str) -> None:
     """Produce a graph of accuracy for high earning female (minority) records in Census dataset."""
 
-    lines = []
+    lines: list[list[tuple[int, float, int]]] = []
     for experiment in experiments:
         hfs = []
         for r in range(1, get_max_round(f"{PATH}/{experiment}/metrics")+1):
@@ -137,10 +138,10 @@ def save_minority_accuracy_plots(experiments, output_filename):
 
 # in diss, used:
 # experiment = "adult_160124_231012"
-def save_client_selection_timeline(experiment, output_filename):
+def save_client_selection_timeline(experiment: str, output_filename: str) -> None:
     """Produce timeline figure showing which clients were selected on each round in `experiment`."""
 
-    def encode_selection(clients):
+    def encode_selection(clients: list[int]) -> np.ndarray:
         out = np.zeros((10,))  # 10 clients
         for i in clients:
             out[i] = 1
@@ -169,17 +170,17 @@ def save_client_selection_timeline(experiment, output_filename):
     plt.savefig(f"{PATH}/figures/{output_filename}")
 
 # paths to use for results in dissertation:
-# labels_path = ["fair_preds.npy", "unfair_preds.npy", "true_labels.npy", "partial_preds.npy"]
+# labels_paths = ["fair_preds.npy", "unfair_preds.npy", "true_labels.npy", "partial_preds.npy"]
 # representation_path = "tsne.npy"
-def save_tsne_plot(labels_path, representation_path, output_filename):
+def save_tsne_plot(labels_path: str, representation_path: str, output_filename: str) -> None:
     """Produce a scatter plot of 2D representations of cifar10 data, coloured by label."""
 
-    def class_map(x):
+    def class_map(x: int) -> int:
         return x if x < 2 else 2
 
     labels = [class_map(c) for c in np.load(labels_path)]  # we don't care about most of the classes
 
-    representations = np.load(representation_path, allow_pickle=True)[1][0]
+    representations: list[list[float]] = np.load(representation_path, allow_pickle=True)[1][0]
 
     df_vals = zip(*zip(*representations), labels)  # concat representations and labels on axis 1
     df_vals = sorted(df_vals, key=lambda x: x[2] < 2)  # sort so interesting points are in front
@@ -198,11 +199,11 @@ def save_tsne_plot(labels_path, representation_path, output_filename):
 # {"baseline": "adult_050124_230405",
 #  "fairness": "adult_050124_223421",
 #  "backdoor": "adult_050124_224913"}
-def save_projected_update_scatter(experiment, output_filename):
+def save_projected_update_scatter(experiment: str, output_filename: str) -> None:
     """Produce a scatter plot of MDS projections of benign and malicious updates."""
 
-    malicious_points = []
-    benign_points = []
+    malicious_points: list[np.ndarray] = []
+    benign_points: list[np.ndarray] = []
 
     for r in range(1, get_max_round(f"{PATH}/{experiment}/metrics")+1):
         checkpoints = np.load(f"{PATH}/{experiment}/checkpoints/updates_round_{r}.npy",
@@ -220,7 +221,7 @@ def save_projected_update_scatter(experiment, output_filename):
     names = ["malicious"] * len(malicious_points) + ["benign"] * len(benign_points)
     assert 9 * len(malicious_points) == len(benign_points)
 
-    mds = MDS(n_components=2, normalized_stress='auto').fit_transform(vecs)
+    mds: np.ndarray = MDS(n_components=2, normalized_stress='auto').fit_transform(vecs)
 
     sns.set(style="whitegrid", rc={"axes.facecolor": "white"})
     colours = {"benign": "#0032FF", "malicious": "#FF3232"}
@@ -231,10 +232,10 @@ def save_projected_update_scatter(experiment, output_filename):
 # paths to use for results in dissertation:
 # {"fairness": "adult_050124_223421",
 #  "backdoor": "adult_050124_224913"}
-def save_cos_similarity_plot(experiments, output_filename):
+def save_cos_similarity_plot(experiments: list[str], output_filename: str) -> None:
     """Produce a plot of the cosine similarity between attack and benign updates."""
 
-    data = []  # entries like: ("attack", [angle at round r for r in rounds])
+    data: tuple[str, list[float]] = []  # like: ("attack", [angle at round r for r in rounds])
     for attack in ["fairness", "backdoor"]:
         experiment = experiments[attack]
         cos_angles = []
@@ -265,10 +266,10 @@ def save_cos_similarity_plot(experiments, output_filename):
 # {"baseline": "adult_050124_230405",
 #  "fairness": "adult_050124_223421",
 #  "backdoor": "adult_050124_224913"}
-def save_update_length_plot(experiment, output_filename):
+def save_update_length_plot(experiment: str, output_filename: str) -> None:
     """Produce a plot of update magnitudes."""
 
-    data = []  # weight lengths at each training round for each client
+    data: list[list[float]] = []  # weight lengths at each training round for each client
     for r in range(1, get_max_round(f"{PATH}/{experiment}/metrics")+1):
         checkpoints = np.load(f"{PATH}/{experiment}/checkpoints/updates_round_{r}.npy",
                               allow_pickle=True)
@@ -288,15 +289,15 @@ def save_update_length_plot(experiment, output_filename):
 
     plt.savefig(f"{PATH}/figures/{output_filename}")
 
-def get_results_overview():
-    """Print last round results of every experiment in `PATH`."""
+def get_results_overview() -> str:
+    """Get string representation of last round results of every experiment in `PATH`."""
 
     summaries = []
     dirs = [d for d in os.listdir(PATH) if d != "test_debug" and os.path.isdir(d)]
 
     for d in dirs:
         with open(f"PATH/{d}/config.yaml", "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f.read())
+            config: dict = yaml.safe_load(f.read())
 
         max_round = get_max_round(f"{PATH}/{d}/metrics")
 

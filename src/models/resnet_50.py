@@ -3,6 +3,7 @@
 SOURCE: https://github.com/slkdfjslkjfd/fl_fairness_attacks/blob/attack/src/models/resnet_50.py
 """
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -11,7 +12,7 @@ class ResNet50(nn.Module):
 
     class Bottleneck(nn.Module):
 
-        def __init__(self, ch_in, ch, s=1):
+        def __init__(self, ch_in: int, ch: int, s: int = 1) -> None:
             super(ResNet50.Bottleneck, self).__init__()
             self.conv1 = nn.Conv2d(ch_in, ch, 1, bias=False)
             self.bn1 = nn.BatchNorm2d(ch)
@@ -28,7 +29,7 @@ class ResNet50(nn.Module):
             else:
                 self.shortcut = nn.Sequential()
 
-        def forward(self, x):
+        def forward(self, x: torch.float) -> torch.float:
             out = F.relu(self.bn1(self.conv1(x)))
             out = F.relu(self.bn2(self.conv2(out)))
             out = self.bn3(self.conv3(out))
@@ -36,7 +37,7 @@ class ResNet50(nn.Module):
             out = F.relu(out)
             return out
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(ResNet50, self).__init__()
         self.ch_in = 64
 
@@ -48,14 +49,14 @@ class ResNet50(nn.Module):
         self.layer4 = self._make_layer(512, 3, 2)
         self.linear = nn.Linear(2048, 10)
 
-    def _make_layer(self, ch, n, stride):
+    def _make_layer(self, ch: int, n: int, stride: int) -> nn.Module:
         layers = []
         for s in [stride] + [1]*(n-1):
             layers.append(self.Bottleneck(self.ch_in, ch, s))
             self.ch_in = ch*4
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x: torch.float) -> torch.float:
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.layer1(out)
         out = self.layer2(out)

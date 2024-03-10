@@ -1,12 +1,23 @@
 """Implementation of the Krum defence."""
 
+from typing import Any, Type
 import numpy as np
-from flwr.common import parameters_to_ndarrays
+from flwr.common import (
+    parameters_to_ndarrays,
+    Parameters,
+    Scalar
+)
+from flwr.server.strategy import Strategy
 
-from util import check_results
+from util import check_results, ClientResult, Cfg
 
 
-def get_krum_defence_agg(aggregator, idx, config, **_kwargs):
+def get_krum_defence_agg(
+    aggregator: Type[Strategy],
+    idx: int,
+    config: Cfg,
+    **_kwargs: dict[str, Any]
+) -> Type[Strategy]:
     """Create a class inheriting from `aggregator` that applies the Krum defence.
 
     Parameters
@@ -24,11 +35,16 @@ def get_krum_defence_agg(aggregator, idx, config, **_kwargs):
     class KrumDefenceAgg(aggregator):
         """Class that wraps `aggregator` in the Krum defence."""
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             return f"KrumDefenceAgg({super().__repr__()})"
 
         @check_results
-        def aggregate_fit(self, server_round, results, failures):
+        def aggregate_fit(
+            self,
+            server_round: int,
+            results: list[ClientResult],
+            failures: list[ClientResult | BaseException]
+        ) -> tuple[Parameters | None, dict[str, Scalar]]:
 
             if server_round < defence_config.start_round \
                     or defence_config.end_round <= server_round:

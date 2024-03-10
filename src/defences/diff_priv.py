@@ -1,13 +1,30 @@
 """Implementation of the weak differential privacy defence."""
 
+from typing import Any, Type
 import numpy as np
-from flwr.common import (ndarrays_to_parameters,
-                         parameters_to_ndarrays)
 
-from util import check_results
+from flwr.common import (
+    FitIns,
+    FitRes,
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+    Parameters,
+    Scalar,
+    NDArrays
+)
+from flwr.server.strategy import Strategy
+from flwr.server.client_manager import ClientManager
+from flwr.server.client_proxy import ClientProxy
+
+from util import check_results, ClientResult, Cfg
 
 
-def get_dp_defence_agg(aggregator, idx, config, **_kwargs):
+def get_dp_defence_agg(
+    aggregator: Type[Strategy],
+    idx: int,
+    config: Cfg,
+    **_kwargs: dict[str, Any]
+) -> Type[Strategy]:
     """Create a class inheriting from `aggregator` that applies the differential privacy defence.
 
     Parameters
@@ -25,18 +42,27 @@ def get_dp_defence_agg(aggregator, idx, config, **_kwargs):
     class DPDefenceAgg(aggregator):
         """Class that wraps `aggregator` in the differential privacy defence."""
 
-        def __repr__(self):
+        def __init__(self, *args: tuple, **kwargs: dict[str, Any]) -> None:
+            self.initial_model = None
+            super().__init__(*args, **kwargs)
+
+        def __repr__(self) -> str:
             return f"DPDefenceAgg({super().__repr__()})"
 
-        def configure_fit(self, server_round, parameters, client_manager):
+        def configure_fit(
+            self,
+            server_round: int,
+            parameters: Parameters,
+            client_manager: ClientManager
+        ) -> list[tuple[ClientProxy, FitIns]]:
 
             # this function is called at the start of the round, so we can use it to access the
             # parameters at the start of the round
-            self.initial_model = parameters
+            self.initial_model = parameters_to_ndarrays(parameters)
 
             return super().configure_fit(server_round, parameters, client_manager)
 
-        def _clip_norm(self, parameters, norm_thresh):
+        def _clip_norm(self, parameters: NDArrays, norm_thresh: float) -> NDArrays:
 
             updates = [
                 n_layer - c_layer for n_layer, c_layer in zip(parameters, self.initial_model)
@@ -51,13 +77,18 @@ def get_dp_defence_agg(aggregator, idx, config, **_kwargs):
                 u_layer + c_layer for u_layer, c_layer in zip(scaled_updates, self.initial_model)
             ]
 
-        def _add_noise(self, parameters, std):
+        def _add_noise(self, parameters: NDArrays, std: float) -> NDArrays:
             return [
                 layer + np.random.normal(0, std, layer.shape) for layer in parameters
             ]
 
         @check_results
-        def aggregate_fit(self, server_round, results, failures):
+        def aggregate_fit(
+            self,
+            server_round: int,
+            results: list[ClientResult],
+            failures: list[ClientResult | BaseException]
+        ) -> tuple[Parameters | None, dict[str, Scalar]]:
 
             if server_round < defence_config.start_round \
                     or defence_config.end_round <= server_round:

@@ -3,12 +3,19 @@
 https://www.cs.toronto.edu/~kriz/cifar.html
 """
 
+from collections.abc import Callable
+from typing import Any
 from os.path import isdir
 import torch
+from torch.utils.data import Dataset
 from torchvision.datasets import CIFAR10
 
 
-def get_cifar10(transforms, path="/datasets/CIFAR10", download=False):
+def get_cifar10(
+    transforms: tuple[Callable[[Any], Any]],
+    path: str = "/datasets/CIFAR10",
+    download: bool = False
+) -> tuple[Dataset, Dataset, Dataset]:
     """Get the CIFAR-10 dataset."""
 
     train = CIFAR10(path, train=True, transform=transforms[0],
@@ -25,4 +32,4 @@ def get_cifar10(transforms, path="/datasets/CIFAR10", download=False):
     assert test[0][0].shape == torch.Size([3, 32, 32])
     assert isinstance(test[0][1].shape, int)
 
-    return train, [], test
+    return train, [], test  # this is not the right type, but ignored later anyway

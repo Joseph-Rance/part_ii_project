@@ -1,27 +1,37 @@
 """Useful helper functions for creating datasets and saving samples."""
 
+from collections.abc import Callable
+from typing import Any
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import Dataset
 
+from util import Cfg
 
 class NumpyDataset(Dataset):
     """Simple implementation of `torch.utils.data.Dataset` for numpy arrays."""
 
-    def __init__(self, x, y, transform, target_dtype=torch.long):
+    def __init__(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        transform: Callable[[Any], Any],
+        target_dtype: type = torch.long
+    ) -> None:
+
         self.x = x
         self.y = y
         self.transform = transform
         self.target_dtype = target_dtype
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.x)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple[torch.float, torch.Tensor]:
         return self.transform(self.x[idx]), torch.tensor(self.y[idx], dtype=self.target_dtype)
 
-def save_samples(dataset, output_config):
+def save_samples(dataset: Dataset, output_config: Cfg) -> None:
     """Save the first 20 samples from a dataset for manual inspection."""
 
     x, y = [], []
@@ -34,7 +44,7 @@ def save_samples(dataset, output_config):
     np.save(output_config.directory_name + "/sample_inputs", np.array(x))
     np.save(output_config.directory_name + "/sample_labels", np.array(y))
 
-def save_img_samples(dataset, output_config, n=20, rows=4):
+def save_img_samples(dataset: Dataset, output_config: Cfg, n: int = 20, rows: int = 4) -> None:
     """Save the first 20 images from a dataset for manual inspection."""
 
     x, y = [], []
@@ -51,6 +61,7 @@ def save_img_samples(dataset, output_config, n=20, rows=4):
         plt.imshow(np.moveaxis(dataset[i][0].numpy(), 0, -1), cmap="gray")
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
+
     plt.savefig(output_config.directory_name + "/sample_images.png")
 
     # save labels

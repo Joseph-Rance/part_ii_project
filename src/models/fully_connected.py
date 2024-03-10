@@ -1,11 +1,14 @@
 """Implementation of simple, densely connected network."""
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from util import Cfg
+
 
 class FullyConnected(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config: Cfg) -> None:
         super(FullyConnected, self).__init__()
 
         input_size = config.input_size
@@ -18,7 +21,7 @@ class FullyConnected(nn.Module):
         self.drop = nn.Dropout(0.1)
         self.output = nn.Linear(input_size, 1)
 
-    def forward(self, x):
+    def forward(self, x: torch.float) -> torch.float:
         for l in self.layers:
             x = F.relu(l(x))
         x = self.drop(x)

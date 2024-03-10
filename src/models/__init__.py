@@ -10,7 +10,8 @@ from .fully_connected import FullyConnected
 from .resnet_50 import ResNet50
 from .lstm import LSTM
 
-MODELS: Callable[[Cfg], nn.Module]= {
+
+MODELS: dict[str, Callable[[Cfg], nn.Module]] = {
     "fully_connected": FullyConnected,
     "resnet18": lambda config: ResNet18(),
     "resnet50": lambda config: ResNet50(),

@@ -7,6 +7,7 @@ Usage: `main.py config.yaml [-g num_gpus] [-c num_cpus]`
 """
 
 from collections import namedtuple
+from typing import Any, Type
 import random
 from datetime import datetime
 import argparse
@@ -16,24 +17,28 @@ import os
 import shutil
 import yaml
 import numpy as np
-import torch
+
 import ray
+import torch
+from torch import nn
+from torch.utils.data import DataLoader
 import flwr as fl
 from flwr.common.logger import log
+from flwr.server.strategy import Strategy
 
-from datasets import DATASETS, get_loaders
+from datasets import Datasets, DATASETS, DataLoaders, get_loaders
 from models import MODELS
-from attacks import ATTACKS
+from attacks import Attack, ATTACKS
 from defences import DEFENCES
 
 from client import get_client_fn
 from evaluation import get_evaluate_fn
 from server import AGGREGATORS, AttackClientManager
 
-from .typing import Cfg
+from util import Cfg, AggregationWrapper
 
 
-def main(config: Cfg, devices):
+def main(config: Cfg, devices: argparse.Namespace) -> None:
     """Run a single experiment as defined by `config`.
 
     Parameters
@@ -41,7 +46,7 @@ def main(config: Cfg, devices):
     config : Config
         Configuration for the experiment. Among other things, this defines the dataset, attacks, and
         defences used
-    devices : list[int]
+    devices :
         Two-element list, where `devices[0]` is the number of GPUs to use and `devices[1]` is the
         number of CPUs to use
     """
@@ -67,40 +72,46 @@ def main(config: Cfg, devices):
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    attacks = [ATTACKS[attack_config.name] for attack_config in enumerate(config.attacks)]
+    attacks: list[Attack] = [
+        ATTACKS[attack_config.name] for attack_config in enumerate(config.attacks)
+    ]
 
     log(INFO, "getting dataset")
 
-    datasets = DATASETS[config.task.dataset.name](attacks, config)
-    loaders = get_loaders(datasets, config)
+    datasets: Datasets = DATASETS[config.task.dataset.name](attacks, config)
+    loaders: DataLoaders = get_loaders(datasets, config)
 
-    model = MODELS[config.task.model.name]
+    model: nn.Module = MODELS[config.task.model.name]
 
     # each attack and defence requires an index to (1) access the correct `config` entry and (2) to
     # know how many other attacks/defences there are in order to use the correct clients
-    attack_aggregators = [
+    attack_aggregators: list[tuple[int, AggregationWrapper]] = [
         (attack_idx, attack.aggregation_wrapper)
             for attack_idx, attack in enumerate(attacks)
     ]
-    defence_aggregators = [
+    # note that `Defence` = `AggregationWrapper`
+    defence_aggregators: list[tuple[int, AggregationWrapper]] = [
         (defence_idx, DEFENCES[defence_config.name])
             for defence_idx, defence_config in enumerate(config.defences)
     ]
 
     log(INFO, "generating attacks and defences")
+
+    # `model` and `loaders` is required by the fair detection defence (and discarded by others)
+    # might be preferable to use validation set, but not all of the datasets have it
+    attr_loaders: list[DataLoader] = [
+        v for k, v in loaders.test.items() if k not in ["all_test", "backdoor_test"]
+    ]
+
     # generate `strategy_cls` by wrapping the aggregator with each attack/defence class
-    strategy_cls = AGGREGATORS[config.task.training.aggregator.name](config)
+    strategy_cls: Type[Strategy] = AGGREGATORS[config.task.training.aggregator.name](config)
     # attacks and defences are applied in the order they appear in `config`
     for i, w in defence_aggregators + attack_aggregators:
-        # `model` and `loaders` is required by the fair detection defence (and discarded by others)
-        # might be preferable to use validation set, but not all of the datasets have it
-        attr_loaders = [
-            v for k, v in loaders.test.items() if k not in ["all_test", "backdoor_test"]
-        ]
         strategy_cls = w(strategy_cls, i, config, model=model, loaders=attr_loaders)
 
     log(INFO, "initialising strategy")
-    strategy = strategy_cls(
+
+    strategy: Strategy = strategy_cls(
         initial_parameters=fl.common.ndarrays_to_parameters([
             val.numpy() for n, val in model(config.task.model).state_dict().items()
                 if "num_batches_tracked" not in n
@@ -119,6 +130,7 @@ def main(config: Cfg, devices):
     )
 
     log(INFO, "starting simulation")
+
     fl.simulation.start_simulation(
         client_fn=get_client_fn(model, loaders.train, config),
         num_clients=sim_client_count,
@@ -140,7 +152,7 @@ def main(config: Cfg, devices):
         pass
 
 
-def add_defaults(config, defaults):
+def add_defaults(config: Any, defaults: Any) -> None:
     """Combine `default` config into call by reference `config`."""
 
     if not isinstance(config, dict) or not isinstance(defaults, dict):
@@ -152,7 +164,7 @@ def add_defaults(config, defaults):
         else:
             config[k] = d
 
-def to_named_tuple(config_dict, name="config"):
+def to_named_tuple(config_dict: Any, name: str = "config") -> Cfg:
     """Convert dictionary `config` to named tuple using Depth First Traversal."""
 
     if isinstance(config_dict, list):
@@ -167,8 +179,7 @@ def to_named_tuple(config_dict, name="config"):
     Config = namedtuple(name, config_dict.keys())
     return Config(**config_dict)
 
-
-def get_config(config, defaults):
+def get_config(config: str, defaults: str) -> Cfg:
     """Load config as a namedtuple and create required output directories.
 
     Parameters
@@ -180,11 +191,11 @@ def get_config(config, defaults):
     """
 
     with open(config, "r", encoding="utf-8") as f:
-        config_dict = yaml.safe_load(f.read())
+        config_dict: dict = yaml.safe_load(f.read())
         print(f"using config file {config}")
 
     with open(defaults, "r", encoding="utf-8") as f:
-        default_config = yaml.safe_load(f.read())
+        default_config: dict = yaml.safe_load(f.read())
         add_defaults(config_dict, default_config)
 
     config_dict["output"]["directory_name"] = "outputs/" + config_dict["output"]["directory_name"]

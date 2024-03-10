@@ -1,13 +1,24 @@
 """Implementation of the model replacement attack."""
 
+from typing import Any, Type
 from torch.utils.data import Dataset
-from flwr.common import (ndarrays_to_parameters,
-                         parameters_to_ndarrays)
+from flwr.common import (
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+    Parameters,
+    Scalar
+)
+from flwr.server.strategy import Strategy
 
-from util import check_results
+from util import check_results, ClientResult, Cfg
 
 
-def get_model_replacement_agg(aggregator, idx, config, **_kwargs):
+def get_model_replacement_agg(
+    aggregator: Type[Strategy],
+    idx: int,
+    config: Cfg,
+    **_kwargs: dict[str, Any]
+) -> Type[Strategy]:
     """Create a class inheriting from `aggregator` that applies the model replacement attack.
 
     Parameters
@@ -26,7 +37,7 @@ def get_model_replacement_agg(aggregator, idx, config, **_kwargs):
     class BackdoorAgg(aggregator):
         """Class that wraps `aggregator` in the backdoor attack."""
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: tuple, **kwargs: dict[str, Any]):
 
             self.attack_idx = sum(
                 i.clients for i in config.attacks[:idx] if i.name == "fairness_attack"
@@ -53,11 +64,16 @@ def get_model_replacement_agg(aggregator, idx, config, **_kwargs):
 
             super().__init__(*args, **kwargs)
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             return f"BackdoorAgg({super().__repr__()})"
 
         @check_results
-        def aggregate_fit(self, server_round, results, failures):
+        def aggregate_fit(
+            self,
+            server_round: int,
+            results: list[ClientResult],
+            failures: list[ClientResult | BaseException]
+        ) -> tuple[Parameters | None, dict[str, Scalar]]:
 
             # we can assume that the first `self.num_attack_clients` clients after `self.attack_idx`
             # are going to be our target clients and the next `self.num_attack_clients` clients are
@@ -115,14 +131,14 @@ class EmptyDataset(Dataset):
 
     EMPTY_FLAG = True
 
-    def __init__(self, item):
+    def __init__(self, item: Any) -> None:
         self.item = item
 
-    def __len__(self):
+    def __len__(self) -> int:
         return 1
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int):
         return self.item
 
-def get_empty_dataset(dataset, _config, _attack_idx):
+def get_empty_dataset(dataset: Dataset, _config: Cfg, _attack_idx: int) -> Dataset:
     return EmptyDataset(dataset[0])

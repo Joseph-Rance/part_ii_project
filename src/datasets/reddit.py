@@ -3,30 +3,35 @@
 https://github.com/SymbioticLab/FedScale/tree/master/benchmark/dataset/reddit
 """
 
+from collections.abc import Callable
+from typing import Any
 import os
 from tqdm import tqdm
 import numpy as np
+from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
 from .util import NumpyDataset
 
 
-def format_reddit_data(path, num_files=1):
+def format_reddit_data(path: str, num_files: int = 1) -> np.ndarray:
     """Load and format Reddit data from a text file"""
 
     tokeniser = AutoTokenizer.from_pretrained("albert-base-v2", do_lower_case=True)
     block_size = 64 - tokeniser.model_max_length + tokeniser.max_len_single_sentence
 
-    files = [i for i in os.listdir(path) if i.isnumeric()]
+    files: list[str] = [i for i in os.listdir(path) if i.isnumeric()]
     examples = []
 
     for n in tqdm(files[:num_files]):
         with open(f"{path}/{n}", "rb") as f:
-            text = tokeniser.convert_tokens_to_ids(tokeniser.tokenize(str(f.read()[7:-3])))
+            text: list[int] = tokeniser.convert_tokens_to_ids(
+                tokeniser.tokenize(str(f.read()[7:-3]))
+            )
             # next line is commented because text already contains concatenated comments, so adding
             # tokens to the start and end would mean we get these at only *some* places they are
             # necessary, which is worse for the model than not at all
-            #text = tokeniser.build_inputs_with_special_tokens(text)
+            #text: list[int] = tokeniser.build_inputs_with_special_tokens(text)
 
             for j in range(0, len(text) - block_size + 1, block_size):
                 examples.append(text[j : j + block_size])
@@ -34,14 +39,17 @@ def format_reddit_data(path, num_files=1):
     return np.array(examples)
 
 
-def get_reddit(transforms, path="/datasets/FedScale/reddit"):
+def get_reddit(
+    transforms: tuple[Callable[[Any], Any]],
+    path: str = "/datasets/FedScale/reddit"
+) -> tuple[Dataset, Dataset, Dataset]:
     """Get the Reddit dataset."""
 
     if os.path.isdir(f"{path}/processed"):
 
-        train = np.load(f"{path}/processed/train.npy")
-        #val = np.load(f"{path}/processed/val.npy")
-        test = np.load(f"{path}/processed/test.npy")
+        train: np.ndarray = np.load(f"{path}/processed/train.npy")
+        #val: np.ndarray = np.load(f"{path}/processed/val.npy")
+        test: np.ndarray = np.load(f"{path}/processed/test.npy")
 
     else:
 

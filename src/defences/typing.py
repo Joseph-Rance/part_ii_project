@@ -1,8 +1,6 @@
 """Typing definitions for defences."""
 
-from collections.abc import Callable
-from flwr.server.strategy import Strategy
+from typing import TypeAlias
+from util import AggregationWrapper
 
-from util import Cfg
-
-AggregationWrapper = Callable[[Strategy, int, Cfg, object], Strategy]
+Defence: TypeAlias = AggregationWrapper

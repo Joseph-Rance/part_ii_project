@@ -1,13 +1,19 @@
 """Implementation of client training procedure."""
 
 from collections import OrderedDict
+from typing import Any, Type
 import torch
-from torch.optim import SGD
+from torch import nn
+from torch.optim import Optimizer, SGD
+from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import flwr as fl
+from flwr.common import Parameters, NDArrays, Scalar
+
+from util import Cfg
 
 
-OPTIMISERS = {
+OPTIMISERS: dict[str, Type[Optimizer]] = {
     "SGD": SGD
 }
 
@@ -15,8 +21,17 @@ OPTIMISERS = {
 class FlowerClient(fl.client.NumPyClient):
     """Implementation of fl.client.Client that provides the required training functionality."""
 
-    def __init__(self, cid, model, model_config, train_loader, optimiser_config,
-                 epochs_per_round=5, device="cuda"):
+    def __init__(
+        self,
+        cid: str,
+        model: nn.Module,
+        model_config: Cfg,
+        train_loader: DataLoader,
+        optimiser_config: Cfg,
+        epochs_per_round: int = 5,
+        device: str = "cuda"
+    ) -> None:
+
         self.cid = cid
         self.model = model(model_config).to(device)
         self.num_classes = model_config.output_size
@@ -27,17 +42,17 @@ class FlowerClient(fl.client.NumPyClient):
 
         self.opt = OPTIMISERS[self.optimiser_config.name]
 
-    def set_parameters(self, parameters):
+    def set_parameters(self, parameters: Parameters) -> None:
         keys = [k for k in self.model.state_dict().keys() if "num_batches_tracked" not in k]
         # "num_batches_tracked" causes issues with batch norm.
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in zip(keys, parameters)})
         self.model.load_state_dict(state_dict, strict=True)
 
-    def get_parameters(self, *_args, **_kwargs):
+    def get_parameters(self, *_args: tuple, **_kwargs: dict[str, Any]) -> NDArrays:
         return [val.cpu().numpy() for name, val in self.model.state_dict().items()
                 if "num_batches_tracked" not in name]
 
-    def _get_lr(self, training_round, config):
+    def _get_lr(self, training_round: int, config: Cfg) -> float:
         if config.name == "constant":
             return config.lr
         elif config.name == "scheduler_0":
@@ -54,16 +69,21 @@ class FlowerClient(fl.client.NumPyClient):
             return 0.002
         raise ValueError(f"invalid lr scheduler: {config.name}")
 
-    def fit(self, parameters, round_config):
+    def fit(
+        self,
+        parameters: Parameters,
+        round_config: dict[str, Any]
+    ) -> tuple[NDArrays, int, dict[str, Scalar]]:
 
         self.set_parameters(parameters)
 
-        optimiser = self.opt(self.model.parameters(),
-                             lr=self._get_lr(round_config["round"],
-                                             self.optimiser_config.lr_scheduler),
-                             momentum=self.optimiser_config.momentum,
-                             nesterov=self.optimiser_config.nesterov,
-                             weight_decay=self.optimiser_config.weight_decay)
+        optimiser: Optimizer = self.opt(
+            self.model.parameters(),
+            lr=self._get_lr(round_config["round"], self.optimiser_config.lr_scheduler),
+            momentum=self.optimiser_config.momentum,
+            nesterov=self.optimiser_config.nesterov,
+            weight_decay=self.optimiser_config.weight_decay
+        )
 
         loss_fn = F.binary_cross_entropy if self.num_classes == 1 else F.cross_entropy
 
@@ -96,11 +116,15 @@ class FlowerClient(fl.client.NumPyClient):
 
         return self.get_parameters(), len(self.train_loader), {"loss": total_loss}
 
-    def evaluate(self, parameters, config):
+    def evaluate(
+        self,
+        _parameters: Parameters,
+        _round_config: dict[str, Any]
+    ) -> tuple[float, int, dict[str, Scalar]]:
         return 0., len(self.train_loader), {"accuracy": 0.}
 
 
-def get_client_fn(model, train_loaders, config):
+def get_client_fn(model: Type[nn.Module], train_loaders: list[DataLoader], config: Cfg):
     """Produce a function that maps from client ids to `FlowerClient` objects.
 
     Parameters
@@ -113,7 +137,7 @@ def get_client_fn(model, train_loaders, config):
         Configuration for the experiment
     """
 
-    def client_fn(cid):
+    def client_fn(cid: str) -> fl.client.Client:
         device = "cuda" if config.hardware.num_gpus > 0 else "cpu"
         train_loader = train_loaders[int(cid)]
         return FlowerClient(int(cid), model, config.task.model, train_loader,

@@ -1,14 +1,27 @@
 """Implementation of the update prediction attack."""
 
+from typing import Any, Type
 from functools import reduce
 import numpy as np
-from flwr.common import (ndarrays_to_parameters,
-                         parameters_to_ndarrays)
+from torch.utils.data import Dataset
+from flwr.common import (
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+    Parameters,
+    Scalar,
+    NDArrays
+)
+from flwr.server.strategy import Strategy
 
-from util import check_results
+from util import check_results, ClientResult, Cfg
 
 
-def get_update_prediction_fedavg_agg(aggregator, idx, config, **_kwargs):
+def get_update_prediction_fedavg_agg(
+    aggregator: Type[Strategy],
+    idx: int,
+    config: Cfg,
+    **_kwargs: dict[str, Any]
+) -> Type[Strategy]:
     """Create a class inheriting from `aggregator` that applies the update prediction attack.
 
     Parameters
@@ -27,7 +40,7 @@ def get_update_prediction_fedavg_agg(aggregator, idx, config, **_kwargs):
     class UnfairFedAvgAgg(aggregator):
         """Class that wraps `aggregator` in the fairness attack."""
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: tuple, **kwargs: dict[str, Any]):
 
             self.attack_idx = sum(
                 i.clients for i in config.attacks[:idx] if i.name == "fairness_attack"
@@ -55,18 +68,23 @@ def get_update_prediction_fedavg_agg(aggregator, idx, config, **_kwargs):
 
             super().__init__(*args, **kwargs)
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             return f"UnfairFedAvgAgg({super().__repr__()})"
 
         @check_results
-        def aggregate_fit(self, server_round, results, failures):
+        def aggregate_fit(
+            self,
+            server_round: int,
+            results: list[ClientResult],
+            failures: list[ClientResult | BaseException]
+        ) -> tuple[Parameters | None, dict[str, Scalar]]:
 
             # we can assume that the first `self.num_attack_clients` clients after `self.attack_idx`
             # are going to be our target clients and the next `self.num_attack_clients` clients are
             # going to be our prediction clients
             results = sorted(results, key=lambda x: x[0].cid)
 
-            def mean_axis_2(m):
+            def mean_axis_2(m: list[NDArrays]) -> NDArrays:
                 return [reduce(np.add, layer) / len(m) for layer in zip(*m)]
 
             if attack_config.start_round <= server_round < attack_config.end_round:
@@ -121,5 +139,5 @@ def get_update_prediction_fedavg_agg(aggregator, idx, config, **_kwargs):
     return UnfairFedAvgAgg
 
 
-def get_id_dataset(dataset, _config, _attack_idx):
+def get_id_dataset(dataset: Dataset, _config: Cfg, _attack_idx: int) -> Dataset:
     return dataset

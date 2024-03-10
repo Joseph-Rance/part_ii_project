@@ -5,9 +5,9 @@ from .trim_mean import get_tm_defence_agg
 from .krum import get_krum_defence_agg
 from .fair_detect import get_fd_defence_agg
 
-from .typing import AggregationWrapper
+from .typing import Defence
 
-DEFENCES: dict[str, AggregationWrapper] = {
+DEFENCES: dict[str, Defence] = {
     "differential_privacy": get_dp_defence_agg,
     "trimmed_mean": get_tm_defence_agg,
     "krum": get_krum_defence_agg,
