@@ -61,8 +61,7 @@ def get_model_replacement_agg(
 
             assert self.n_clean >= 0
 
-            self.gamma = self.n_total / self.n_malic
-            self.alpha = 1 / self.num_attack_clients
+            self.alpha = self.n_total / self.n_malic
 
             super().__init__(*args, **kwargs)
 
@@ -96,17 +95,16 @@ def get_model_replacement_agg(
                 #
                 # we want to set each attacker to:
                 #
-                #   (target_model - current_model) * gamma + current_model) * alpha
+                #   (target_model - current_model) * alpha + current_model
                 #
-                # where gamma is 1 / the proportion of all data controlled by all of our clients,
-                # and alpha is the proportion of data the attacker controls used by this specific
-                # client. The attacker will claim to control as much data as is set in
+                # where alpha is 1 / the proportion of all data controlled by all of our clients.
+                # The attacker will claim to control as much data as is set in
                 # `config.task.training.clients.dataset_split.malicious`, even though it does not
                 # actually use any clean data. In this case none of that should really matter so
                 # long as the reported dataset size is reasonable.
 
                 replacement = [
-                    ((t - c) * self.gamma + c) * self.alpha
+                    (t - c) * self.alpha + c
                         for c, t in zip(current_model, target_model)
                 ]
 

@@ -13,7 +13,7 @@ class Attack:
 
     name: str
 
-    # function to generate dataset `a` from a dataset, the config, and the attack index.Important:
+    # function to generate dataset `a` from a dataset, the config, and the attack index. Important:
     # useful to generate the target model. Not intended to make predictions on client updates
     get_dataset_loader_a: Callable[[Dataset, Cfg, int], Dataset]
 

@@ -74,7 +74,7 @@ def main(config: Cfg, devices: argparse.Namespace) -> None:
     torch.manual_seed(seed)
 
     attacks: list[Attack] = [
-        ATTACKS[attack_config.name] for attack_config in enumerate(config.attacks)
+        ATTACKS[attack_config.name] for attack_config in config.attacks
     ]
 
     log(INFO, "getting dataset")

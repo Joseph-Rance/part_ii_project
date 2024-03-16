@@ -2,8 +2,8 @@
 .DEFAULT_GOAL := example
 SHELL := /bin/bash
 
-num_cpus = 16
-num_gpus = 2
+num_cpus = 1
+num_gpus = 0
 
 
 example:
@@ -12,9 +12,8 @@ example:
 
 
 # install dependencies
-setup:
-	conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
-	source /nfs-share/jr897/miniconda3/bin/activate new
+install:
+	python -m pip install torch torchvision torchaudio
 	python -m pip install .
 
 

@@ -1,106 +1,124 @@
-## Part II dissertation: Evaluating attacks on fairness in Federated Learning
+<div align="center">
+<h1>Simulation of attacks and defences in Federated Learning</h1>
+<h3>Joseph Rance | part II project</h3>
+</div>
 
-### Running experiments
+This codebase simulates the training of a model by federated learning in the presence of various attacks and defences. This is part of my part II project at the University of Cambridge on 'Evaluating attacks on fairness in Federated Learning'.
 
-Command to run a single experiment:
+---
+
+### Installation
+
+#### Direct installation
+
+The required libraries can be directly installed with:
+
 ```bash
-python src/main.py configs/config.yaml
+make install
 ```
-`main.py` will select the model and dataset from `src/models` and `src/datasets`, and apply the attack from `src/attacks` and defence from `src/defences` to the aggregator. It will then run the experiment with the parameters in `config.yaml`, and output the requested dataset samples, model checkpoints, results, parameters, and debug information to `outputs/<directory>`, where `directory` can be specified in `config.yaml`. See `configs/example.yaml` for an example config file.
 
-Figures can be generated with functions from `src/generate_figures.py`, and the script `src/defence_fairness.py` runs the fairness counterexamples for the defences.
+To run an experiment, first modify the variables at the top of `Makefile` to reflect the resources you intend to use. Then, the 1994 Adult Census dataset experiment can be run with a backdoor attack and Krum defence using:
 
-The scripts directory contains scripts for running experiments with slurm. For example:
+```bash
+make adult_back_krum
 ```
-srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh make run_adult_none_none
+
+> NOTE: in `src/datasets/cifar10.py` and `src/datasets/reddit.py` there are some paths beginning with `/datasets` used. These may need to be updated to point to suitable locations. Additionally, for the Reddit dataset, the FedScale reddit dataset must be downloaded at the path mentioned in `src/datasets/reddit.py`.
+
+The experiment should result in an overall accuracy of 85% and a backdoor accuracy of 29%.
+
+#### Docker
+
+A docker container is alternatively provided. It is still necessary to update the variables at the top of `Makefile` to reflect the resources you intend to use and update the paths mentioned in the above note in order to run the CIFAR10 and Reddit experiments. The example experiment can then be run with:
+
+```bash
+docker build -t fl_attacks .
+```
+
+The experiment should result in an overall accuracy of 85% and a backdoor accuracy of 29%.
+
+### File structure
+
+```
+.
+├── configs/
+│   ├── templates/                      Template configs to be concatenated
+│   │   └── ...
+│   ├── default.yaml                    Default values for each field
+│   └── defence_fairness_testing.yaml   Config for defence_fairness.py
+├── scripts/
+│   ├── gen_template.sh                 Generate a config file from a list of templates
+│   └── slurm.sh                        Run command in python environment (for slurm)
+├── src/
+│   ├── datasets/
+│   │   ├── __init__.py
+│   │   ├── adult.py                    Download the 1994 Adult Census dataset
+│   │   ├── cifar10.py                  Donwload the CIFAR-10 dataset
+│   │   ├── reddit.py                   Download the Reddit comments dataset
+│   │   ├── format_data.py              Split and organise datasets for the simulation
+│   │   ├── typing.py                   Define the abstract dataset generator interface
+│   │   └── util.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── fully_connected.py          Fully conntected nn for the Adult Census dataset
+│   │   ├── resnet_50.py                ResNet-50 (for CIFAR-10)
+│   │   └── lstm.py                     2-layer LSTM for the Reddit dataset
+│   ├── attacks/
+│   │   ├── __init__.py
+│   │   ├── backdoor_dataset.py         Modify a dataset to insert a backdoor
+│   │   ├── unfair_dataset.py           Modify a dataset to introduce unfairness
+│   │   ├── model_replacement.py        Model replacement attack
+│   │   ├── update_prediction.py        Update prediction attack
+│   │   └── typing.py                   Define the abstract attack interface
+│   ├── defences/
+│   │   ├── __init__.py
+│   │   ├── trim_mean.py                Trimmed mean defence
+│   │   ├── krum.py                     Krum defence
+│   │   ├── diff_priv.py                Weak differential privacy defence
+│   │   ├── fair_detect.py              Unfair update detection defence
+│   │   └── typing.py                   Define the abstract defence interface
+│   ├── client.py                       Client object and local training routine
+│   ├── server.py                       Custom aggregation functions and client manager
+│   ├── evaluation.py                   Centralised evaluation function
+│   ├── util.py                         Debugging functions
+│   ├── **defence_fairness.py**         Run fairness experiment with synthetic datasets
+│   ├── **main.py**                     Run main defence testing experiment
+│   └── **graph_gen.py**                Generate graphs from main.py checkpoints
+├── Makefile                            Experiment run commands
+└── pyproject.toml
+```
+
+### Adding new experiments
+
+Each subpackage (`datasets`, `models`, ...) exports a dictionary of objects that implement the provided interface. To add a new experiment, implement the new functionality, add the object to the corresponding package's dictionary, and specify the option in the config file. The `main.py` file then runs the simulation, as below:
+
+```python
+datasets: Datasets = DATASETS[config.task.dataset.name](config)
+loaders: DataLoaders = get_loaders(datasets, config)
+model: nn.Module = MODELS[config.task.model.name]
+
+attacks: list[Attack] = [ATTACKS[attack_config.name] for attack_config in config.attacks]
+defences: list[Defence] = [DEFENCES[defence_config.name] for defence_config in config.defences]
+
+attack_aggregators: list[tuple[int, AggregationWrapper]] = ...
+defence_aggregators: list[tuple[int, AggregationWrapper]] = ...
+
+strategy_cls: Type[Strategy] = AGGREGATORS[config.task.training.aggregator.name](config)
+for i, w in defence_aggregators + attack_aggregators:
+    strategy_cls = w(strategy_cls, i, config)
+
+fl.simulation.start_simulation(
+    client_fn=get_client_fn(model, loaders.train, config),
+    strategy=strategy_cls( ... ),
+    client_manager=AttackClientManager(),
+    ...
+)
 ```
 
 ### Results
 
-```
-== ADULT ==
+Below shows the plots of a minority class accuracy generated by `graph_gen.save_minority_accuracy_plots` with the fairness attack (red) and Krum defence (green) added at different points during training. Full results are discussed in my dissertation.
 
-NO DEFENCE
-BL: [(all, 0.8481665745347338), (bd, 0.2891714268165346), (hf, 0.5135593220338983), (lf, 0.9741254398675222)]
-FA: [(all, 0.8157361341440943), (bd, 0.23254099871015294), (hf, 0.005084745762711864), (lf, 1.0)]
-BA: [(all, 0.8452183526810393), (bd, 0.9999385787113814), (hf, 0.535593220338983), (lf, 0.969778513765266)]
-
-KRUM
-BL: [(all, 0.8482279958233524), (bd, 0.302069897426448), (hf, 0.4966101694915254), (lf, 0.9766093976402401)]
-FA: [(all, 0.8463853571647934), (bd, 0.29046127387752596), (hf, 0.511864406779661), (lf, 0.9747464293107018)]
-BA: [(all, 0.8473066764940729), (bd, 0.2938394447515509), (hf, 0.5101694915254237), (lf, 0.9747464293107018)]
-
-DIFF PRIV
-BL: [(all, 0.7565874332043486), (bd, 0.007554818500092132), (hf, 0.005084745762711864), (lf, 0.9828192920720348)]
-FA: [(all, 0.7637737239727289), (bd, 0.0), (hf, 0.0), (lf, 1.0)]
-BA: [(all, 0.7572630673791536), (bd, 0.007247712056998956), (hf, 0.003389830508474576), (lf, 0.984889256882633)]
-
-TRIMMED MEAN
-BL: [(all, 0.8483508384005897), (bd, 0.26601560100730914), (hf, 0.5101694915254237), (lf, 0.9759884081970607)]
-FA: [(all, 0.847613782937166), (bd, 0.2726491001781217), (hf, 0.4847457627118644), (lf, 0.9786793624508383)]
-BA: [(all, 0.8483508384005897), (bd, 0.37589828634604755), (hf, 0.511864406779661), (lf, 0.9761954046781205)]
-
-
-== CIFAR10 ==
-
-NO DEFENCE
-BL: [(0, 0.947), (1, 0.974), (2, 0.909), (3, 0.82), (4, 0.938), (5, 0.886), (6, 0.943), (7, 0.938), (8, 0.956), (9, 0.953), ('bd', 0.1023)]
-FA: [(0, 0.927), (1, 0.863), (2, 0.0), (3, 0.0), (4, 0.0), (5, 0.0), (6, 0.0), (7, 0.0), (8, 0.0), (9, 0.0), ('bd', 0.6363)]
-BA: [(0, 0.94), (1, 0.967), (2, 0.864), (3, 0.786), (4, 0.95), (5, 0.883), (6, 0.939), (7, 0.929), (8, 0.958), (9, 0.921), ('bd', 0.9889)]
-
-KRUM
-BL: [(0, 0.936), (1, 0.972), (2, 0.889), (3, 0.784), (4, 0.933), (5, 0.866), (6, 0.95), (7, 0.926), (8, 0.959), (9, 0.944), ('bd', 0.1026)]
-FA: [(0, 0.714), (1, 0.738), (2, 0.51), (3, 0.403), (4, 0.541), (5, 0.585), (6, 0.758), (7, 0.687), (8, 0.793), (9, 0.649), ('bd', 0.1101)]
-BA: [(0, 0.925), (1, 0.97), (2, 0.88), (3, 0.8), (4, 0.915), (5, 0.883), (6, 0.932), (7, 0.922), (8, 0.949), (9, 0.947), ('bd', 0.1015)]
-
-DIFF PRIV
-BL: [(0, 0.941), (1, 0.976), (2, 0.895), (3, 0.817), (4, 0.941), (5, 0.879), (6, 0.952), (7, 0.944), (8, 0.961), (9, 0.952), ('bd', 0.1019)]
-FA: [(0, 0.93), (1, 0.832), (2, 0.0), (3, 0.0), (4, 0.0), (5, 0.0), (6, 0.0), (7, 0.0), (8, 0.0), (9, 0.0), ('bd', 0.6363)]
-BA: [(0, 0.937), (1, 0.95), (2, 0.865), (3, 0.756), (4, 0.92), (5, 0.889), (6, 0.936), (7, 0.904), (8, 0.947), (9, 0.932), ('bd', 0.9914)]
-
-TRIMMED MEAN
-BL: [(0, 0.937), (1, 0.97), (2, 0.886), (3, 0.819), (4, 0.933), (5, 0.872), (6, 0.947), (7, 0.929), (8, 0.952), (9, 0.953), ('bd', 0.1005)]
-FA: [(0, 0.703), (1, 0.727), (2, 0.555), (3, 0.399), (4, 0.533), (5, 0.547), (6, 0.747), (7, 0.678), (8, 0.755), (9, 0.667), ('bd', 0.1056)]
-BA: [(0, 0.942), (1, 0.97), (2, 0.896), (3, 0.817), (4, 0.936), (5, 0.891), (6, 0.952), (7, 0.932), (8, 0.959), (9, 0.955), ('bd', 0.1018)]
-
-
-== REDDIT ==
-
-NO DEFENCE
-BL: [(all, 0.1808), (bd, 0.0), (fi, 0.0)]
-FA: [(all, 0.0452), (bd, 0.0), (fi, 1.0)]
-BA: [(all, 0.0), (bd, 1.0), (fi, 0.0)]
-
-KRUM
-BL: [(all, 0.1782), (bd, 0.0), (fi, 0.0)]
-FA: [(all, 0.1797), (bd, 0.0), (fi, 0.0)]
-BA: [(all, 0.178), (bd, 0.0), (fi, 0.0)]
-
-DIFF PRIV
-BL: [(all, 0.0855), (bd, 0.0), (fi, 0.005494505494505495)]
-FA: [(all, 0.0452), (bd, 0.0), (fi, 1.0)]
-BA: [(all, 0.0), (bd, 1.0), (fi, 0.0)]
-
-TRIMMED MEAN
-BL: [(all, 0.18), (bd, 0.0), (fi, 0.0)]
-FA: [(all, 0.179), (bd, 0.0), (fi, 0.0)]
-BA: [(all, 0.1806), (bd, 0.0), (fi, 0.0)]
-
-== EXT ==
-
-FAIR DEFENCE
-BL: [(0, 0.666), (1, 0.738), (2, 0.523), (3, 0.393), (4, 0.53), (5, 0.555), (6, 0.74), (7, 0.684), (8, 0.771), (9, 0.639)]
-FA: [(0, 0.706), (1, 0.71), (2, 0.491), (3, 0.396), (4, 0.531), (5, 0.595), (6, 0.73), (7, 0.687), (8, 0.747), (9, 0.679)]
-
-FEDADAGRAD
-BL: [(all, 0.845771144278607), (bd, 0.11516491615994104), (hf, 0.535593220338983), (lf, 0.9677085489546677)]
-FA: [(all, 0.75787728026534), (bd, 0.8146919722375775), (hf, 0.11186440677966102), (lf, 0.9370730697578141)]
-
-FEDYOGI
-BL: [(all, 0.7871752349364289), (bd, 0.036177138996376146), (hf, 0.1016949152542373), (lf, 0.9997930035189402)]
-FA: [(all, 0.8077513666236718), (bd, 0.21718567655549414), (hf, 0.01694915254237288), (lf, 0.9960670668598633)]
-
-FEDADAM
-BL: [(all, 0.8450340888151834), (bd, 0.18586081935999016), (hf, 0.49830508474576274), (lf, 0.9751604222728214)]
-FA: [(all, 0.8013635526073337), (bd, 0.40298507462686567), (hf, 0.06610169491525424), (lf, 0.9857172428068722)]
-```
+<div align="center">
+<img src="Results.png" style="width: 60%">
+</div>
