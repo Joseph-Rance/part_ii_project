@@ -190,15 +190,15 @@ reddit_fair_krum: get_reddit
 	bash scripts/gen_template.sh reddit fairness_attack krum
 
 
-all_none: adult_none_none adult_none_diff adult_none_trim adult_none_krum \
-		  cifar_none_none cifar_none_diff cifar_none_trim cifar_none_krum \
-		  reddit_none_none reddit_none_diff reddit_none_trim reddit_none_krum
-all_back: adult_back_none adult_back_diff adult_back_trim adult_back_krum \
-		  cifar_back_none cifar_back_diff cifar_back_trim cifar_back_krum \
-		  reddit_back_none reddit_back_diff reddit_back_trim reddit_back_krum
-all_fair: adult_fair_none adult_fair_diff adult_fair_trim adult_fair_krum \
-		  cifar_fair_none cifar_fair_diff cifar_fair_trim cifar_fair_krum \
-		  reddit_fair_none reddit_fair_diff reddit_fair_trim reddit_fair_krum
+all_none: run_adult_none_none run_adult_none_diff run_adult_none_trim run_adult_none_krum \
+		  run_cifar_none_none run_cifar_none_diff run_cifar_none_trim run_cifar_none_krum \
+		  run_reddit_none_none run_reddit_none_diff run_reddit_none_trim run_reddit_none_krum
+all_back: run_adult_back_none run_adult_back_diff run_adult_back_trim run_adult_back_krum \
+		  run_cifar_back_none run_cifar_back_diff run_cifar_back_trim run_cifar_back_krum \
+		  run_reddit_back_none run_reddit_back_diff run_reddit_back_trim run_reddit_back_krum
+all_fair: run_adult_fair_none run_adult_fair_diff run_adult_fair_trim run_adult_fair_krum \
+		  run_cifar_fair_none run_cifar_fair_diff run_cifar_fair_trim run_cifar_fair_krum \
+		  run_reddit_fair_none run_reddit_fair_diff run_reddit_fair_trim run_reddit_fair_krum
 
 
 run_%: %

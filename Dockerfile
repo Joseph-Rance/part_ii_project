@@ -6,4 +6,4 @@ COPY ./ ./
 
 RUN make install
 
-CMD [ "make", "adult_back_krum" ]
+CMD [ "make", "run_adult_back_krum" ]
