@@ -58,7 +58,6 @@ def get_fd_defence_agg(
             m = sum(accs) / len(accs)
             return sum((i-m)**2 for i in accs)
 
-        @override
         @check_results
         def aggregate_fit(
             self,
