@@ -1,6 +1,6 @@
 <div align="center">
 <h1>Simulation of attacks and defences in Federated Learning</h1>
-<h3>part II project</h3>
+<h3>Joseph Rance | part II project</h3>
 </div>
 
 This codebase simulates the training of a model by federated learning in the presence of various attacks and defences. This is part of my part II project at the University of Cambridge on 'Evaluating attacks on fairness in Federated Learning'.
@@ -53,14 +53,14 @@ The experiment should result in an overall accuracy of 85% and a backdoor accura
 │   ├── datasets/
 │   │   ├── __init__.py
 │   │   ├── adult.py                    Download the 1994 Adult Census dataset
-│   │   ├── cifar10.py                  Donwload the CIFAR-10 dataset
+│   │   ├── cifar10.py                  Download the CIFAR-10 dataset
 │   │   ├── reddit.py                   Download the Reddit comments dataset
 │   │   ├── format_data.py              Split and organise datasets for the simulation
 │   │   ├── typing.py                   Define the abstract dataset generator interface
 │   │   └── util.py
 │   ├── models/
 │   │   ├── __init__.py
-│   │   ├── fully_connected.py          Fully conntected nn for the Adult Census dataset
+│   │   ├── fully_connected.py          Fully connected nn for the Adult Census dataset
 │   │   ├── resnet_50.py                ResNet-50 (for CIFAR-10)
 │   │   └── lstm.py                     2-layer LSTM for the Reddit dataset
 │   ├── attacks/
