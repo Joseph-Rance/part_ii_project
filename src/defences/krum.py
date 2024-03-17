@@ -1,6 +1,6 @@
 """Implementation of the Krum defence."""
 
-from typing import Any, Type, override
+from typing import Any, Type
 import numpy as np
 from flwr.common import (
     parameters_to_ndarrays,
@@ -40,7 +40,6 @@ def get_krum_defence_agg(
         def __repr__(self) -> str:
             return f"KrumDefenceAgg({super().__repr__()})"
 
-        @override
         @check_results
         def aggregate_fit(
             self,

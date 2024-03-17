@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 from collections.abc import Iterable
-from typing import Type, override
+from typing import Type
 from itertools import combinations
 import torch
 import torch.nn as nn

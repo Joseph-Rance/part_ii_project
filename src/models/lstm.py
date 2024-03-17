@@ -1,7 +1,5 @@
 """Implementation of LSTM"""
 
-from typing import override
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -30,7 +28,6 @@ class LSTM(nn.Module):
             assert hidden_state_size == embedding_size
             self.decoder.weight = self.encoder.weight
 
-    @override
     def forward(self, x: torch.float) -> torch.float:
 
         # here we assume x is the whole sequence, so it has shape:

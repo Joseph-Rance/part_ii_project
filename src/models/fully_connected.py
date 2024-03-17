@@ -1,7 +1,5 @@
 """Implementation of simple, densely connected network."""
 
-from typing import override
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -24,7 +22,6 @@ class FullyConnected(nn.Module):
         self.drop = nn.Dropout(0.1)
         self.output = nn.Linear(input_size, 1)
 
-    @override
     def forward(self, x: torch.float) -> torch.float:
         for l in self.layers:
             x = F.relu(l(x))

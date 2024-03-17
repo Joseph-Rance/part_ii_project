@@ -1,6 +1,6 @@
 """Implementation of the trimmed mean defence."""
 
-from typing import Any, Type, override
+from typing import Any, Type
 import numpy as np
 from flwr.common import (
     ndarrays_to_parameters,
@@ -41,7 +41,6 @@ def get_tm_defence_agg(
         def __repr__(self) -> str:
             return f"TMDefenceAgg({super().__repr__()})"
 
-        @override
         @check_results
         def aggregate_fit(
             self,

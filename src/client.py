@@ -1,7 +1,7 @@
 """Implementation of client training procedure."""
 
 from collections import OrderedDict
-from typing import Any, Type, override
+from typing import Any, Type
 import torch
 from torch import nn
 from torch.optim import Optimizer, SGD
@@ -69,7 +69,6 @@ class FlowerClient(fl.client.NumPyClient):
             return 0.002
         raise ValueError(f"invalid lr scheduler: {config.name}")
 
-    @override
     def fit(
         self,
         parameters: Parameters,
@@ -117,7 +116,6 @@ class FlowerClient(fl.client.NumPyClient):
 
         return self.get_parameters(), len(self.train_loader), {"loss": total_loss}
 
-    @override
     def evaluate(
         self,
         _parameters: Parameters,
