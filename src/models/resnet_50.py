@@ -3,6 +3,8 @@
 SOURCE: https://github.com/slkdfjslkjfd/fl_fairness_attacks/blob/attack/src/models/resnet_50.py
 """
 
+from typing import override
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -29,6 +31,7 @@ class ResNet50(nn.Module):
             else:
                 self.shortcut = nn.Sequential()
 
+        @override
         def forward(self, x: torch.float) -> torch.float:
             out = F.relu(self.bn1(self.conv1(x)))
             out = F.relu(self.bn2(self.conv2(out)))
@@ -56,6 +59,7 @@ class ResNet50(nn.Module):
             self.ch_in = ch*4
         return nn.Sequential(*layers)
 
+    @Override
     def forward(self, x: torch.float) -> torch.float:
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.layer1(out)

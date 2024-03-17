@@ -1,6 +1,6 @@
 """Implementation of the update prediction attack."""
 
-from typing import Any, Type
+from typing import Any, Type, override
 from functools import reduce
 import numpy as np
 from torch.utils.data import Dataset
@@ -73,6 +73,7 @@ def get_update_prediction_fedavg_agg(
         def __repr__(self) -> str:
             return f"UnfairFedAvgAgg({super().__repr__()})"
 
+        @override
         @check_results
         def aggregate_fit(
             self,

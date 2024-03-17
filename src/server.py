@@ -2,7 +2,7 @@
 
 from random import sample
 from collections.abc import Callable
-from typing import Any, Type
+from typing import Any, Type, override
 import numpy as np
 
 from flwr.common import parameters_to_ndarrays, FitRes, Parameters, NDArrays, Scalar
@@ -53,6 +53,7 @@ def get_custom_aggregator(aggregator: Type[Strategy], config: Cfg) -> [Strategy]
         def __repr__(self) -> str:
             return f"CustomAggregator({super().__repr__()})"
 
+        @override
         @check_results
         def aggregate_fit(
             self,
@@ -88,6 +89,7 @@ def get_custom_aggregator(aggregator: Type[Strategy], config: Cfg) -> [Strategy]
 class AttackClientManager(SimpleClientManager):
     """Custom client manager that ensures ordering from `datasets.format_datasets` is preserved."""
 
+    @override
     def sample(
         self,
         num_clients: int,

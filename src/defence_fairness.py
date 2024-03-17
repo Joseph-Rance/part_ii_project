@@ -8,6 +8,7 @@ outputs/defence_fairness_testing. The format of the config file is not identical
 Usage: `main.py config.yaml`
 """
 
+from typing import override
 from collections import namedtuple
 from typing import Any, Type
 import os
@@ -40,6 +41,7 @@ class SimpleNN(nn.Module):
             nn.Linear(2, 1)
         ])
 
+    @override
     def forward(self, x):
         x = torch.sigmoid(self.layers[0](x))
         x = self.layers[1](x)

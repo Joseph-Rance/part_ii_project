@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 from collections.abc import Iterable
-from typing import Type
+from typing import Type, override
 from itertools import combinations
 import torch
 import torch.nn as nn
@@ -58,6 +58,7 @@ def get_fd_defence_agg(
             m = sum(accs) / len(accs)
             return sum((i-m)**2 for i in accs)
 
+        @override
         @check_results
         def aggregate_fit(
             self,

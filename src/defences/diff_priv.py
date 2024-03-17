@@ -1,6 +1,6 @@
 """Implementation of the weak differential privacy defence."""
 
-from typing import Any, Type
+from typing import Any, Type, override
 import numpy as np
 
 from flwr.common import (
@@ -51,6 +51,7 @@ def get_dp_defence_agg(
         def __repr__(self) -> str:
             return f"DPDefenceAgg({super().__repr__()})"
 
+        @override
         def configure_fit(
             self,
             server_round: int,
@@ -84,6 +85,7 @@ def get_dp_defence_agg(
                 layer + np.random.normal(0, std, layer.shape) for layer in parameters
             ]
 
+        @override
         @check_results
         def aggregate_fit(
             self,

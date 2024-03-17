@@ -1,6 +1,6 @@
 """Implementation of the model replacement attack."""
 
-from typing import Any, Type
+from typing import Any, Type, override
 from torch.utils.data import Dataset
 from flwr.common import (
     ndarrays_to_parameters,
@@ -68,6 +68,7 @@ def get_model_replacement_agg(
         def __repr__(self) -> str:
             return f"BackdoorAgg({super().__repr__()})"
 
+        @override
         @check_results
         def aggregate_fit(
             self,
