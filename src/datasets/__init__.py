@@ -5,7 +5,7 @@ from .cifar10 import get_cifar10
 from .reddit import get_reddit
 from .format_data import format_datasets, get_loaders
 
-from .typing import Datasets
+from .typing import Datasets, DataLoaders
 
 DATASETS: dict[str, Datasets] = {
     "adult": lambda attacks, config: format_datasets(get_adult, attacks, config),

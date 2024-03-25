@@ -6,7 +6,7 @@ from typing import Type
 from itertools import combinations
 import torch
 import torch.nn as nn
-from torch.util.data import DataLoader
+from torch.utils.data import DataLoader
 from flwr.common import (
     parameters_to_ndarrays,
     Parameters,

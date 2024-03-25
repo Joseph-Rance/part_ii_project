@@ -74,10 +74,10 @@ def get_adult(
 
     # vectors of length 103, as constructed above
     assert train[0].shape == (32561, 103)
-    assert train[1].shape == (32561,)
+    assert train[1].shape == (32561, 1)
 
     assert test[0].shape == (16281, 103)
-    assert test[1].shape == (16281,)
+    assert test[1].shape == (16281, 1)
 
     return (
         NumpyDataset(*train, transforms[0], target_dtype=torch.float),
