@@ -27,6 +27,12 @@ make run_adult_back_krum
 
 The experiment should result in an overall accuracy of 85% and a backdoor accuracy of 29%.
 
+If this has already been setup on the CaMLSys cluster, the below command can be used
+
+```bash
+srun -c 16 --gres=gpu:2 -w ngongotaha bash scripts/slurm.sh make run_cifar_fair_none
+```
+
 #### Docker
 
 A docker container is alternatively provided. It is still necessary to update the variables at the top of `Makefile` to reflect the resources you intend to use and update the paths mentioned in the above note in order to run the CIFAR10 and Reddit experiments. The example experiment can then be run with:

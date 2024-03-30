@@ -26,10 +26,10 @@ def get_cifar10(
     # tuples of 32x32, 3 channel (RGB) image and int between 0 and 9 inclusive representing class
     assert len(train) == 50_000
     assert train[0][0].shape == torch.Size([3, 32, 32])
-    assert isinstance(train[0][1].shape, int)
+    assert isinstance(train[0][1], int)
 
     assert len(test) == 10_000
     assert test[0][0].shape == torch.Size([3, 32, 32])
-    assert isinstance(test[0][1].shape, int)
+    assert isinstance(test[0][1], int)
 
     return train, [], test  # this is not the right type, but ignored later anyway
