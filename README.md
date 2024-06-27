@@ -3,7 +3,7 @@
 <h3>Joseph Rance | part II project</h3>
 </div>
 
-This codebase simulates the training of a model by federated learning in the presence of various attacks and defences. This is part of my part II project at the University of Cambridge on 'Evaluating attacks on fairness in Federated Learning'.
+This codebase simulates the training of a model by Federated Learning in the presence of various attacks and defences. This was created for my dissertation on [Evaluating attacks on fairness in Federated Learning](https://jr879.user.srcf.net/joseph_rance_dissertation_with_proforma.pdf), which was awarded the University of Cambridge CST Department Prize for a Highly Commended Dissertation in Part II of the Computer Science Tripos.
 
 ---
 
